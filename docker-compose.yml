@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  # SQL Server Database
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: productmanagement-sqlserver
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=YourStrong@Password123
+      - MSSQL_PID=Developer
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqlserver-data:/var/opt/mssql
+    networks:
+      - productmanagement-network
+    healthcheck:
+      test: /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P YourStrong@Password123 -Q "SELECT 1" || exit 1
+      interval: 10s
+      timeout: 3s
+      retries: 10
+
+  # Product Management API
+  api:
+    build:
+      context: .
+      dockerfile: ProductManagement.API/Dockerfile
+    container_name: productmanagement-api
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - Server=localhost;Database=ProductManagementDB;User Id=sa;Password=YourStrong@Passw0rd;TrustServerCertificate=True;MultipleActiveResultSets=true
+    ports:
+      - "5000:8080"
+      - "5001:8081"
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    networks:
+      - productmanagement-network
+    volumes:
+      - ./logs:/app/logs
+    restart: unless-stopped
+
+volumes:
+  sqlserver-data:
+    driver: local
+
+networks:
+  productmanagement-network:
+    driver: bridge
