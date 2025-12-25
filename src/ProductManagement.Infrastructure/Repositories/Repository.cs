@@ -5,10 +5,6 @@ using ProductManagement.Infrastructure.Data;
 
 namespace ProductManagement.Infrastructure.Repositories;
 
-/// <summary>
-/// Generic Repository Implementation
-/// ใช้ EF Core สำหรับ CRUD operations พื้นฐาน
-/// </summary>
 public class Repository<TEntity, TKey> : IRepository<TEntity, TKey>
     where TEntity : class
 {
@@ -56,6 +52,25 @@ public class Repository<TEntity, TKey> : IRepository<TEntity, TKey>
             cancellationToken);
     }
 
+    // เพิ่ม method ใหม่สำหรับ nested includes
+    public virtual async Task<TEntity?> GetByIdWithNestedIncludesAsync(
+        TKey id,
+        CancellationToken cancellationToken = default,
+        params Func<IQueryable<TEntity>, IQueryable<TEntity>>[] includeBuilders)
+    {
+        IQueryable<TEntity> query = _dbSet;
+
+        // Apply each include builder
+        foreach (var includeBuilder in includeBuilders)
+        {
+            query = includeBuilder(query);
+        }
+
+        return await query.FirstOrDefaultAsync(
+            e => EF.Property<TKey>(e, "Id")!.Equals(id),
+            cancellationToken);
+    }
+
     public virtual async Task<(IEnumerable<TEntity> Items, int TotalCount)> GetPagedAsync(
         int pageNumber,
         int pageSize,
@@ -65,22 +80,18 @@ public class Repository<TEntity, TKey> : IRepository<TEntity, TKey>
     {
         IQueryable<TEntity> query = _dbSet;
 
-        // Apply filter
         if (filter != null)
         {
             query = query.Where(filter);
         }
 
-        // Get total count before pagination
         var totalCount = await query.CountAsync(cancellationToken);
 
-        // Apply ordering
         if (orderBy != null)
         {
             query = orderBy(query);
         }
 
-        // Apply pagination
         var items = await query
             .Skip((pageNumber - 1) * pageSize)
             .Take(pageSize)

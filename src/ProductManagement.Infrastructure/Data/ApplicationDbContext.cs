@@ -4,13 +4,6 @@ using ProductManagement.Domain.Entities;
 
 namespace ProductManagement.Infrastructure.Data;
 
-/// <summary>
-/// DbContext with best practices:
-/// - Fluent API configuration
-/// - Query filters for soft delete
-/// - Automatic audit fields
-/// - Performance optimizations
-/// </summary>
 public class ApplicationDbContext : DbContext
 {
     private readonly IHttpContextAccessor? _httpContextAccessor;
@@ -23,29 +16,35 @@ public class ApplicationDbContext : DbContext
         _httpContextAccessor = httpContextAccessor;
     }
 
-    // DbSets
+    // Product DbSets
     public DbSet<Product> Products => Set<Product>();
     public DbSet<Category> Categories => Set<Category>();
     public DbSet<ProductImage> ProductImages => Set<ProductImage>();
     public DbSet<Review> Reviews => Set<Review>();
 
+    // Authentication DbSets
+    public DbSet<User> Users => Set<User>();
+    public DbSet<Role> Roles => Set<Role>();
+    public DbSet<UserRole> UserRoles => Set<UserRole>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
 
-        // Apply all configurations from assembly
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
 
-        // Global query filter for soft delete
+        // Global query filters for soft delete
         modelBuilder.Entity<Product>().HasQueryFilter(p => !p.IsDeleted);
         modelBuilder.Entity<Category>().HasQueryFilter(c => !c.IsDeleted);
         modelBuilder.Entity<ProductImage>().HasQueryFilter(pi => !pi.IsDeleted);
         modelBuilder.Entity<Review>().HasQueryFilter(r => !r.IsDeleted);
+        modelBuilder.Entity<User>().HasQueryFilter(u => !u.IsDeleted);
+        modelBuilder.Entity<Role>().HasQueryFilter(r => !r.IsDeleted);
+        modelBuilder.Entity<UserRole>().HasQueryFilter(ur => !ur.IsDeleted);
     }
 
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
-        // Automatic audit trail
         var currentUser = _httpContextAccessor?.HttpContext?.User?.Identity?.Name ?? "System";
         var entries = ChangeTracker.Entries()
             .Where(e => e.State == EntityState.Added ||
@@ -69,7 +68,6 @@ public class ApplicationDbContext : DbContext
                         break;
 
                     case EntityState.Deleted:
-                        // Soft delete
                         entry.State = EntityState.Modified;
                         baseEntity.IsDeleted = true;
                         baseEntity.DeletedAt = DateTime.UtcNow;

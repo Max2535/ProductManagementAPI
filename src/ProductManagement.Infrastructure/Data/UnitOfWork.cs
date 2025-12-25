@@ -12,10 +12,12 @@ public class UnitOfWork : IUnitOfWork
     private readonly IConfiguration _configuration;
     private IDbContextTransaction? _transaction;
 
-    // Lazy initialization of repositories
+    // Lazy initialization
     private IProductRepository? _products;
     private IRepository<Category, Guid>? _categories;
     private IRepository<Review, Guid>? _reviews;
+    private IUserRepository? _users;
+    private IRepository<Role, Guid>? _roles;
 
     public UnitOfWork(ApplicationDbContext context, IConfiguration configuration)
     {
@@ -31,6 +33,12 @@ public class UnitOfWork : IUnitOfWork
 
     public IRepository<Review, Guid> Reviews =>
         _reviews ??= new Repository<Review, Guid>(_context);
+
+    public IUserRepository Users =>
+        _users ??= new UserRepository(_context);
+
+    public IRepository<Role, Guid> Roles =>
+        _roles ??= new Repository<Role, Guid>(_context);
 
     public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {

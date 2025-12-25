@@ -4,10 +4,6 @@ using ProductManagement.Domain.Entities;
 
 namespace ProductManagement.Application.Mappings;
 
-/// <summary>
-/// AutoMapper configuration
-/// Best Practice: Centralized mapping configuration
-/// </summary>
 public class MappingProfile : Profile
 {
     public MappingProfile()
@@ -25,7 +21,9 @@ public class MappingProfile : Profile
         CreateMap<ProductImage, ProductImageDto>();
         CreateMap<Category, CategoryDto>();
 
-        // Request to Entity mappings (if needed for simple cases)
-        // Usually we create entities using factory methods
+        // User mappings
+        CreateMap<User, UserDto>()
+            .ForMember(dest => dest.Roles, opt => opt.MapFrom(src =>
+                src.UserRoles.Select(ur => ur.Role.Name).ToList()));
     }
 }
