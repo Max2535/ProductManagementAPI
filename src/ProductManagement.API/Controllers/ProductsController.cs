@@ -1,5 +1,7 @@
 using FluentValidation;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using ProductManagement.API.Attributes;
 using ProductManagement.Application.Common;
 using ProductManagement.Application.DTOs;
 using ProductManagement.Application.Interfaces;
@@ -21,6 +23,7 @@ namespace ProductManagement.API.Controllers;
 public class ProductsController : ControllerBase
 {
     private readonly IProductService _productService;
+    private readonly ICacheService _cacheService;
     private readonly IValidator<CreateProductRequest> _createValidator;
     private readonly IValidator<UpdateProductRequest> _updateValidator;
     private readonly IValidator<UpdateStockRequest> _stockValidator;
@@ -28,12 +31,14 @@ public class ProductsController : ControllerBase
 
     public ProductsController(
         IProductService productService,
+        ICacheService cacheService,
         IValidator<CreateProductRequest> createValidator,
         IValidator<UpdateProductRequest> updateValidator,
         IValidator<UpdateStockRequest> stockValidator,
         ILogger<ProductsController> logger)
     {
         _productService = productService;
+        _cacheService = cacheService;
         _createValidator = createValidator;
         _updateValidator = updateValidator;
         _stockValidator = stockValidator;
@@ -41,12 +46,13 @@ public class ProductsController : ControllerBase
     }
 
     /// <summary>
-    /// Get all products with pagination
+    /// Get all products with pagination (CACHED)
     /// </summary>
     /// <param name="pageNumber">Page number (default: 1)</param>
     /// <param name="pageSize">Page size (default: 20, max: 100)</param>
     /// <returns>Paged list of products</returns>
     [HttpGet]
+    [Cached(600)] // Cache for 10 minutes
     [ProducesResponseType(typeof(ApiResponse<PagedResult<ProductSummaryDto>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetProducts(
         [FromQuery] int pageNumber = 1,
@@ -69,7 +75,7 @@ public class ProductsController : ControllerBase
     }
 
     /// <summary>
-    /// Get product by ID
+    /// Get product by ID (CACHED with manual implementation)
     /// </summary>
     /// <param name="id">Product ID</param>
     /// <returns>Product details</returns>
@@ -80,6 +86,17 @@ public class ProductsController : ControllerBase
         Guid id,
         CancellationToken cancellationToken = default)
     {
+        var cacheKey = $"product:{id}";
+
+        // Try to get from cache
+        var cachedProduct = await _cacheService.GetAsync<ProductDto>(cacheKey, cancellationToken);
+        if (cachedProduct != null)
+        {
+            _logger.LogInformation("Product {ProductId} retrieved from cache", id);
+            return Ok(ApiResponse<ProductDto>.SuccessResponse(cachedProduct));
+        }
+
+        // Get from database
         var result = await _productService.GetByIdAsync(id, cancellationToken);
 
         if (!result.IsSuccess)
@@ -109,11 +126,12 @@ public class ProductsController : ControllerBase
     }
 
     /// <summary>
-    /// Search products with filters
+    /// Search products (CACHED)
     /// </summary>
     /// <param name="request">Search criteria</param>
     /// <returns>Filtered and paged products</returns>
     [HttpGet("search")]
+    [Cached(300)] // Cache for 5 minutes
     [ProducesResponseType(typeof(ApiResponse<PagedResult<ProductSummaryDto>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> SearchProducts(
         [FromQuery] ProductSearchRequest request,
@@ -168,6 +186,7 @@ public class ProductsController : ControllerBase
     /// <param name="request">Product creation data</param>
     /// <returns>Created product</returns>
     [HttpPost]
+    [Authorize]
     [ProducesResponseType(typeof(ApiResponse<ProductDto>), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> CreateProduct(
@@ -190,6 +209,10 @@ public class ProductsController : ControllerBase
         if (!result.IsSuccess)
             return BadRequest(ApiResponse<object>.FailureResponse(result.Message, result.Errors));
 
+        // Invalidate cache (remove all product list caches)
+        await _cacheService.RemoveByPrefixAsync("products:", cancellationToken);
+        _logger.LogInformation("Product list cache invalidated after creation");
+
         return CreatedAtAction(
             nameof(GetProduct),
             new { id = result.Data!.Id },
@@ -197,12 +220,13 @@ public class ProductsController : ControllerBase
     }
 
     /// <summary>
-    /// Update an existing product
+    /// Update product (INVALIDATE CACHE)
     /// </summary>
     /// <param name="id">Product ID</param>
     /// <param name="request">Product update data</param>
     /// <returns>Updated product</returns>
     [HttpPut("{id:guid}")]
+    [Authorize]
     [ProducesResponseType(typeof(ApiResponse<ProductDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
@@ -224,6 +248,11 @@ public class ProductsController : ControllerBase
 
         if (!result.IsSuccess)
             return NotFound(ApiResponse<object>.FailureResponse(result.Message, result.Errors));
+
+        // Invalidate specific product cache
+        var cacheKey = $"product:{id}";
+        await _cacheService.RemoveAsync(cacheKey, cancellationToken);
+        _logger.LogInformation("Product {ProductId} cache invalidated after update", id);
 
         return Ok(ApiResponse<ProductDto>.SuccessResponse(result.Data!, "Product updated successfully"));
     }

@@ -214,6 +214,14 @@ docker-compose up
 | `GET` | `/api/products/search` | ค้นหาสินค้า |
 | `GET` | `/api/products/category/{categoryId}` | ดึงสินค้าตาม Category |
 
+### Email
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/api/email/send-test` | ส่ง Test Email |
+| `POST` | `/api/email/send-welcome` | ส่ง Welcome Email |
+| `POST` | `/api/email/send-low-stock-alert` | ส่ง Alert เมื่อสินค้าใกล้หมด |
+
 ### Example Requests
 ดูตัวอย่างการเรียก API ใน [ProductManagement.API.http](src/ProductManagement.API/ProductManagement.API.http)
 
@@ -252,6 +260,42 @@ dotnet test tests/ProductManagement.IntegrationTests
   "DefaultConnection": "Server=localhost;Database=ProductManagementDB;..."
 }
 ```
+
+**Email Configuration (Gmail SMTP)**:
+```json
+"EmailSettings": {
+  "SmtpServer": "smtp.gmail.com",
+  "SmtpPort": 587,
+  "SenderName": "Product Management System",
+  "SenderEmail": "your-email@gmail.com",
+  "Username": "your-email@gmail.com",
+  "Password": "your-16-char-app-password",
+  "EnableSsl": true
+}
+```
+
+> ⚠️ **สำคัญ**: สำหรับ Gmail คุณต้องใช้ **App Password** ไม่ใช่รหัสผ่านปกติ
+>
+> **วิธีสร้าง Gmail App Password:**
+> 1. เปิด [Google Account Security](https://myaccount.google.com/security)
+> 2. เปิดใช้งาน **2-Step Verification** (ถ้ายังไม่ได้เปิด)
+> 3. ไปที่ [App Passwords](https://myaccount.google.com/apppasswords)
+> 4. เลือก "Mail" และอุปกรณ์ของคุณ
+> 5. คัดลอก App Password ที่ได้ (16 ตัวอักษร) ไปใส่ใน `appsettings.json`
+>
+> **การทดสอบการส่ง Email:**
+> ```bash
+> curl -X POST "http://localhost:5219/api/Email/send-test" \
+>   -H "Content-Type: application/json" \
+>   -d '{"to": "recipient@example.com"}'
+> ```
+>
+> **Email Features:**
+> - ✅ Send test emails
+> - ✅ Send welcome emails to new users
+> - ✅ Send low stock alerts
+> - ✅ HTML email templates
+> - ✅ Async email sending
 
 **Logging (Serilog)**:
 - Log file location: `logs/productmanagement-YYYYMMDD.txt`
