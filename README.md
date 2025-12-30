@@ -1,19 +1,55 @@
 # Product Management API
 
-ระบบ API สำหรับจัดการข้อมูลสินค้าแบบ E-commerce พัฒนาด้วย .NET 9.0 โดยใช้หลักการ Clean Architecture, Domain-Driven Design และ SOLID Principles
+ระบบ API สำหรับจัดการข้อมูลสินค้าแบบ E-commerce พัฒนาด้วย .NET 9.0 โดยใช้หลักการ Clean Architecture, Domain-Driven Design และ SOLID Principles พร้อมระบบ Authentication, Orders Management, Background Jobs และ Message Queue
 
 ## ✨ Features
 
+### 🏗️ Architecture & Design Patterns
 - ✅ **Clean Architecture** - แบ่งชั้นการทำงานอย่างชัดเจน (Domain, Application, Infrastructure, API)
-- ✅ **Rich Domain Model** - Entity มี Business Logic ที่สมบูรณ์
+- ✅ **Domain-Driven Design** - Rich Domain Models พร้อม Business Logic
 - ✅ **Repository & Unit of Work Pattern** - จัดการ Data Access อย่างมีประสิทธิภาพ
-- ✅ **CQRS Ready** - รองรับ MediatR สำหรับ Command/Query Separation
-- ✅ **FluentValidation** - Validation ที่ยืดหยุ่นและอ่านง่าย
-- ✅ **AutoMapper** - Object Mapping อัตโนมัติ
-- ✅ **Serilog** - Structured Logging ระดับ Production
-- ✅ **Swagger/OpenAPI** - API Documentation แบบ Interactive
-- ✅ **Entity Framework Core** - ORM พร้อม Migration Support
-- ✅ **Dapper** - High-Performance Data Access (Infrastructure Layer)
+- ✅ **CQRS Ready** - แยก Commands และ Queries อย่างชัดเจน
+- ✅ **Event-Driven Architecture** - ใช้ RabbitMQ สำหรับ asynchronous communication
+
+### 🔐 Security & Authentication
+- ✅ **JWT Authentication** - Token-based authentication พร้อม Refresh Token
+- ✅ **Role-Based Authorization** - จัดการสิทธิ์ Admin, Manager, User
+- ✅ **Password Hashing** - SHA-256 hashing สำหรับรหัสผ่าน
+- ✅ **Rate Limiting** - ป้องกัน API abuse ด้วย AspNetCoreRateLimit
+- ✅ **CORS Configuration** - รองรับ Cross-Origin Requests
+
+### 📦 Core Features
+- ✅ **Product Management** - CRUD สินค้า, Stock Management, Discount System
+- ✅ **Order Management** - สร้างคำสั่งซื้อ, จัดการสถานะ, Order Items
+- ✅ **User Management** - Register, Login, Profile, Password Management
+- ✅ **Category System** - จัดการหมวดหมู่สินค้า
+- ✅ **Review System** - รีวิวและให้คะแนนสินค้า
+
+### 🚀 Performance & Scalability
+- ✅ **Redis Caching** - StackExchange.Redis สำหรับ distributed caching
+- ✅ **Dapper** - High-Performance queries สำหรับ read operations
+- ✅ **Connection Resilience** - Auto-retry และ circuit breaker patterns
+- ✅ **Pagination** - ทุก list endpoint รองรับ pagination
+
+### 🔄 Background Processing
+- ✅ **Hangfire** - Background job processing และ scheduled tasks
+- ✅ **Stock Alert Jobs** - ตรวจสอบสินค้าใกล้หมดอัตโนมัติ
+- ✅ **Cleanup Jobs** - ลบ expired tokens และข้อมูลเก่าอัตโนมัติ
+- ✅ **RabbitMQ Integration** - Message queue สำหรับ event handling
+
+### 📧 Communication
+- ✅ **Email Service** - ส่ง email ด้วย SMTP (Gmail support)
+- ✅ **Email Templates** - Welcome emails, Low stock alerts
+- ✅ **RabbitMQ Message Broker** - Event publishing และ consuming
+- ✅ **SignalR Ready** - เตรียมพร้อมสำหรับ real-time features
+
+### 🛠️ Development Tools
+- ✅ **FluentValidation** - Validation rules ที่อ่านง่ายและยืดหยุ่น
+- ✅ **AutoMapper** - Object-to-object mapping อัตโนมัติ
+- ✅ **Serilog** - Structured logging พร้อม file และ console output
+- ✅ **Swagger/OpenAPI** - Interactive API documentation พร้อม JWT support
+- ✅ **Entity Framework Core** - Code-first migrations
+- ✅ **Health Checks** - Database health monitoring
 
 ## 📁 Project Structure
 
@@ -22,46 +58,90 @@ ProductManagementAPI/
 ├── src/
 │   ├── ProductManagement.API/              # 🌐 API Layer
 │   │   ├── Controllers/                     # REST API Controllers
-│   │   │   └── ProductsController.cs       # Products endpoint
+│   │   │   ├── ProductsController.cs       # Products CRUD endpoints
+│   │   │   ├── OrdersController.cs         # Orders management endpoints
+│   │   │   ├── AuthController.cs           # Authentication endpoints
+│   │   │   ├── EmailController.cs          # Email testing endpoints
+│   │   │   └── JobsController.cs           # Background jobs endpoints
 │   │   ├── Middleware/                      # Custom middleware
+│   │   │   └── ExceptionHandlingMiddleware.cs
+│   │   ├── Authorization/                   # Authorization handlers
+│   │   │   ├── AuthorizeRolesAttribute.cs
+│   │   │   ├── RoleRequirement.cs
+│   │   │   └── RoleRequirementHandler.cs
+│   │   ├── Attributes/
+│   │   │   └── CachedAttribute.cs          # Caching attribute
 │   │   ├── Properties/
-│   │   │   └── launchSettings.json         # Launch profiles
-│   │   ├── Program.cs                       # Application entry point
-│   │   ├── appsettings.json                # Configuration
+│   │   │   └── launchSettings.json
+│   │   ├── Program.cs                       # Application entry point & DI
+│   │   ├── appsettings.json                # Production configuration
+│   │   ├── appsettings.Development.json    # Development configuration
+│   │   ├── Dockerfile                       # Docker configuration
 │   │   └── ProductManagement.API.http      # HTTP request samples
 │   │
 │   ├── ProductManagement.Application/      # 💼 Application Layer
 │   │   ├── Services/                        # Business services
+│   │   │   ├── ProductService.cs           # Product business logic
+│   │   │   ├── OrderService.cs             # Order business logic
+│   │   │   ├── AuthService.cs              # Authentication logic
+│   │   │   ├── TokenService.cs             # JWT token generation
+│   │   │   ├── EmailService.cs             # Email sending
+│   │   │   ├── PasswordHasher.cs           # Password hashing
+│   │   │   └── HangfireBackgroundJobService.cs
+│   │   ├── BackgroundJobs/                  # Hangfire jobs
+│   │   │   ├── ProductStockAlertJob.cs     # Stock monitoring
+│   │   │   └── CleanupExpiredTokensJob.cs  # Token cleanup
 │   │   ├── DTOs/                            # Data Transfer Objects
 │   │   ├── Validators/                      # FluentValidation rules
 │   │   ├── Mappings/                        # AutoMapper profiles
+│   │   ├── Models/                          # Configuration models
+│   │   │   ├── JwtSettings.cs
+│   │   │   ├── EmailSettings.cs
+│   │   │   └── RabbitMQSettings.cs
 │   │   └── Interfaces/                      # Service interfaces
 │   │
 │   ├── ProductManagement.Domain/           # 🏛️ Domain Layer
 │   │   ├── Entities/
-│   │   │   ├── Product.cs                  # Product entity
+│   │   │   ├── Product.cs                  # Product entity with business logic
+│   │   │   ├── Order.cs                    # Order entity
+│   │   │   ├── OrderItem.cs                # Order item entity
+│   │   │   ├── User.cs                     # User entity
+│   │   │   ├── Role.cs                     # Role entity
+│   │   │   ├── UserRole.cs                 # User-Role mapping
 │   │   │   ├── Category.cs                 # Category entity
 │   │   │   ├── Review.cs                   # Review entity
 │   │   │   ├── ProductImage.cs             # Product image entity
 │   │   │   └── BaseEntity.cs               # Base entity class
 │   │   └── Interfaces/
 │   │       ├── IRepository.cs              # Generic repository
-│   │       └── IProductRepository.cs       # Product repository
+│   │       ├── IProductRepository.cs       # Product repository
+│   │       ├── IOrderRepository.cs         # Order repository
+│   │       ├── IUserRepository.cs          # User repository
+│   │       └── IUnitOfWork.cs              # Unit of Work
 │   │
 │   └── ProductManagement.Infrastructure/   # 🔧 Infrastructure Layer
 │       ├── Data/
 │       │   ├── ApplicationDbContext.cs     # EF Core DbContext
-│       │   ├── UnitOfWork.cs               # Unit of Work implementation
-│       │   └── Repositories/               # Repository implementations
+│       │   └── UnitOfWork.cs               # Unit of Work implementation
+│       ├── Repositories/                    # Repository implementations
+│       │   ├── Repository.cs               # Generic repository
+│       │   ├── ProductRepository.cs
+│       │   ├── OrderRepository.cs
+│       │   └── UserRepository.cs
+│       ├── Services/                        # Infrastructure services
+│       │   ├── RedisCacheService.cs        # Redis caching
+│       │   ├── RabbitMQMessagePublisher.cs # Message publishing
+│       │   └── RabbitMQMessageConsumer.cs  # Message consuming
 │       └── Migrations/                      # EF Core migrations
 │
 ├── tests/
 │   ├── ProductManagement.UnitTests/        # 🧪 Unit tests
 │   └── ProductManagement.IntegrationTests/ # 🧪 Integration tests
 │
-├── docker-compose.yml                       # Docker configuration
+├── docker-compose.yml                       # Docker services configuration
 ├── ProductManagement.sln                    # Solution file
-└── README.md                                # Documentation
+├── README.md                                # This file
+└── todo.md                                  # Development tasks
 ```
 
 ## 🏗️ Architecture
@@ -101,65 +181,123 @@ ProductManagementAPI/
 ### Core Framework
 - **.NET 9.0** - Latest .NET version
 - **C# 13** - Latest language features
+- **ASP.NET Core 9.0** - Web API framework
 
 ### API & Web
-- **ASP.NET Core 9.0** - Web API framework
-- **Swashbuckle 10.1.0** - Swagger/OpenAPI
-- **SignalR 1.2.0** - Real-time communication
+- **Swashbuckle.AspNetCore 6.9.0** - Swagger/OpenAPI documentation
+- **Microsoft.AspNetCore.OpenApi 9.0.8** - OpenAPI support
+- **Microsoft.AspNetCore.SignalR 1.2.0** - Real-time communication (ready)
 
-### Data Access
-- **Entity Framework Core 10.0.1** - ORM
-- **Dapper 2.1.66** - Micro-ORM for performance-critical queries
-- **SQL Server** - Database
+### Authentication & Security
+- **Microsoft.AspNetCore.Authentication.JwtBearer 9.0.8** - JWT authentication
+- **System.IdentityModel.Tokens.Jwt 8.15.0** - JWT token handling
+- **AspNetCoreRateLimit 5.0.0** - API rate limiting
+
+### Data Access & Caching
+- **Microsoft.EntityFrameworkCore 9.0.8** - ORM
+- **Microsoft.EntityFrameworkCore.SqlServer 9.0.8** - SQL Server provider
+- **Microsoft.EntityFrameworkCore.Design 9.0.8** - Migration tools
+- **Dapper 2.1.66** - Micro-ORM for high-performance queries
+- **StackExchange.Redis 2.10.1** - Redis client
+- **Microsoft.Extensions.Caching.StackExchangeRedis 10.0.1** - Redis caching
+
+### Background Processing & Messaging
+- **Hangfire.AspNetCore 1.8.22** - Background job processing
+- **Hangfire.Core 1.8.22** - Hangfire core
+- **Hangfire.SqlServer 1.8.22** - SQL Server storage for Hangfire
+- **RabbitMQ.Client 6.x** - Message queue client
 
 ### Validation & Mapping
-- **FluentValidation 12.1.1** - Validation library
+- **FluentValidation 12.1.1** - Fluent validation library
+- **FluentValidation.AspNetCore** - ASP.NET Core integration
 - **AutoMapper 16.0.0** - Object-to-object mapping
+- **AutoMapper.Extensions.Microsoft.DependencyInjection** - DI integration
 
-### Logging
-- **Serilog 10.0.0** - Structured logging
-- **Serilog.Sinks.Console 6.1.1**
-- **Serilog.Sinks.File 7.0.0**
+### Logging & Monitoring
+- **Serilog 10.0.0** - Structured logging framework
+- **Serilog.AspNetCore 10.0.0** - ASP.NET Core integration
+- **Serilog.Sinks.Console 6.1.1** - Console output
+- **Serilog.Sinks.File 7.0.0** - File output
+
+### Health & Diagnostics
+- **AspNetCore.HealthChecks.SqlServer 9.0.0** - SQL Server health checks
+- **Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore 9.0.0** - EF Core health checks
 
 ### Testing
 - **xUnit** - Testing framework
-- **FluentAssertions** - Test assertions
-
-### CQRS & Mediator
-- **MediatR 14.0.0** - Mediator pattern implementation
+- **FluentAssertions** - Fluent assertion library
+- **Moq** - Mocking framework (ready)
 
 ## 📋 Prerequisites
 
 - **.NET SDK 9.0** or later ([ดาวน์โหลด](https://dotnet.microsoft.com/download))
-- **SQL Server** (LocalDB, Express หรือ Full version)
-- **Visual Studio 2022** / **VS Code** / **Rider**
+- **SQL Server** (LocalDB, Express, Developer หรือ Full version)
+- **Redis** (Optional - จะใช้ in-memory cache ถ้าไม่มี Redis)
+- **RabbitMQ** (Optional - สำหรับ message queue features)
+- **Docker Desktop** (Optional - สำหรับรัน services ด้วย Docker)
+- **Visual Studio 2022** / **VS Code** / **JetBrains Rider**
 - **Git** (optional)
 
 ## 🚀 Installation & Setup
 
-### 1. Clone Repository
+### Option 1: รัน Services ด้วย Docker (แนะนำ)
+
+#### 1. Clone Repository
+```bash
+git clone https://github.com/Max2535/ProductManagementAPI.git
+cd ProductManagementAPI
+```
+
+#### 2. Start Services
+```bash
+docker-compose up -d
+```
+
+Services ที่จะรัน:
+- **SQL Server** - Port 1433
+- **RabbitMQ** - Port 5672, Management UI: 15672
+- **API** - Port 5000 (HTTP), 5001 (HTTPS)
+
+#### 3. Access Services
+- **API**: http://localhost:5000
+- **Swagger UI**: http://localhost:5000/swagger
+- **Hangfire Dashboard**: http://localhost:5000/hangfire
+- **RabbitMQ Management**: http://localhost:15672 (guest/guest)
+
+---
+
+### Option 2: รันแบบ Manual (Development)
+
+#### 1. Clone Repository
 ```bash
 git clone <repository-url>
 cd ProductManagementAPI
 ```
 
-### 2. Restore Dependencies
+#### 2. Restore Dependencies
 ```bash
 dotnet restore
 ```
 
-### 3. Update Connection String
-แก้ไข [appsettings.json](src/ProductManagement.API/appsettings.json) หรือ `appsettings.Development.json`:
+#### 3. Update Connection Strings
+แก้ไข [appsettings.Development.json](src/ProductManagement.API/appsettings.Development.json):
 
 ```json
 {
   "ConnectionStrings": {
-    "DefaultConnection": "Server=localhost;Database=ProductManagementDB;Trusted_Connection=True;TrustServerCertificate=True;"
+    "DefaultConnection": "Server=localhost;Database=ProductManagementDB;User Id=sa;Password=YourStrongPassword;TrustServerCertificate=True;",
+    "Redis": "localhost:6379"
+  },
+  "RabbitMQ": {
+    "HostName": "localhost",
+    "Port": 5672,
+    "UserName": "guest",
+    "Password": "guest"
   }
 }
 ```
 
-### 4. Create Database & Run Migrations
+#### 4. Create Database & Run Migrations
 ```bash
 cd src/ProductManagement.API
 dotnet ef database update
@@ -167,13 +305,24 @@ dotnet ef database update
 
 หรือสร้าง migration ใหม่:
 ```bash
-dotnet ef migrations add InitialCreate --project ../ProductManagement.Infrastructure
+dotnet ef migrations add YourMigrationName --project ../ProductManagement.Infrastructure
 dotnet ef database update
 ```
 
-### 5. Build Solution
+#### 5. Build Solution
 ```bash
 dotnet build
+```
+
+#### 6. Run Application
+```bash
+cd src/ProductManagement.API
+dotnet run
+```
+
+หรือใช้ **watch mode** (auto-reload):
+```bash
+dotnet watch run
 ```
 
 ## ▶️ Running the Application
@@ -189,41 +338,663 @@ dotnet run
 dotnet watch run
 ```
 
-### Access Points
-- **API**: `https://localhost:7100` หรือ `http://localhost:5100`
-- **Swagger UI**: `https://localhost:7100/swagger`
-- **API Docs**: `https://localhost:7100/swagger/v1/swagger.json`
+### Using VS Code Tasks
+กด `Ctrl+Shift+B` แล้วเลือก:
+- **build** - Build the solution
+- **watch** - Run with auto-reload
+- **publish** - Publish for production
 
-### Using Docker (Coming Soon)
+### Access Points
+- **API**: `http://localhost:5219` (หรือ port ที่แสดงใน console)
+- **Swagger UI**: `http://localhost:5219/swagger`
+- **Hangfire Dashboard**: `http://localhost:5219/hangfire`
+- **Health Check**: `http://localhost:5219/health`
+
+### Docker Compose
 ```bash
-docker-compose up
+# Start all services
+docker-compose up -d
+
+# View logs
+docker-compose logs -f api
+
+# Stop services
+docker-compose down
+
+# Rebuild and restart
+docker-compose up -d --build
 ```
 
-## 🔌 API Endpoints
+## 🔌 API Endpoints & Examples
 
-### Products
+### 🔐 1. Authentication & Authorization
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/api/products` | ดึงรายการสินค้าแบบ Pagination |
-| `GET` | `/api/products/{id}` | ดึงข้อมูลสินค้าตาม ID |
-| `POST` | `/api/products` | สร้างสินค้าใหม่ |
-| `PUT` | `/api/products/{id}` | แก้ไขข้อมูลสินค้า |
-| `DELETE` | `/api/products/{id}` | ลบสินค้า |
-| `PATCH` | `/api/products/{id}/stock` | อัพเดท Stock |
-| `GET` | `/api/products/search` | ค้นหาสินค้า |
-| `GET` | `/api/products/category/{categoryId}` | ดึงสินค้าตาม Category |
+#### 1.1 Register New User
+```bash
+POST /api/auth/register
+Content-Type: application/json
 
-### Email
+{
+  "username": "testuser",
+  "email": "testuser@example.com",
+  "password": "Test@1234",
+  "confirmPassword": "Test@1234",
+  "firstName": "Test",
+  "lastName": "User"
+}
+```
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `POST` | `/api/email/send-test` | ส่ง Test Email |
-| `POST` | `/api/email/send-welcome` | ส่ง Welcome Email |
-| `POST` | `/api/email/send-low-stock-alert` | ส่ง Alert เมื่อสินค้าใกล้หมด |
+#### 1.2 Login
+```bash
+POST /api/auth/login
+Content-Type: application/json
 
-### Example Requests
-ดูตัวอย่างการเรียก API ใน [ProductManagement.API.http](src/ProductManagement.API/ProductManagement.API.http)
+{
+  "emailOrUsername": "testuser@example.com",
+  "password": "Test@1234"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "accessToken": "eyJhbGciOiJIUzI1NiIs...",
+    "refreshToken": "refresh_token_here",
+    "user": {
+      "id": "guid",
+      "username": "testuser",
+      "email": "testuser@example.com"
+    }
+  }
+}
+```
+
+#### 1.3 Refresh Token
+```bash
+POST /api/auth/refresh-token
+Content-Type: application/json
+
+{
+  "accessToken": "your_token",
+  "refreshToken": "your_refresh_token"
+}
+```
+
+#### 1.4 Logout
+```bash
+POST /api/auth/logout
+Authorization: Bearer {token}
+```
+
+#### 1.5 Get Profile
+```bash
+GET /api/auth/profile
+Authorization: Bearer {token}
+```
+
+#### 1.6 Update Profile
+```bash
+PUT /api/auth/profile
+Authorization: Bearer {token}
+Content-Type: application/json
+
+{
+  "firstName": "Updated",
+  "lastName": "Name",
+  "phoneNumber": "0812345678"
+}
+```
+
+#### 1.7 Change Password
+```bash
+POST /api/auth/change-password
+Authorization: Bearer {token}
+Content-Type: application/json
+
+{
+  "currentPassword": "Test@1234",
+  "newPassword": "NewTest@1234",
+  "confirmPassword": "NewTest@1234"
+}
+```
+
+---
+
+### 📦 2. Products Management
+
+#### 2.1 Get All Products (Paginated)
+```bash
+GET /api/products?pageNumber=1&pageSize=20
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "items": [...],
+    "pageNumber": 1,
+    "pageSize": 20,
+    "totalPages": 5,
+    "totalCount": 100
+  }
+}
+```
+
+#### 2.2 Get Product by ID
+```bash
+GET /api/products/{id}
+```
+
+#### 2.3 Get Product by SKU
+```bash
+GET /api/products/by-sku/SKU001
+```
+
+#### 2.4 Search Products
+```bash
+GET /api/products/search?searchTerm=laptop&pageNumber=1&pageSize=20
+```
+
+#### 2.5 Get Products by Category
+```bash
+GET /api/products/by-category/{categoryId}
+```
+
+#### 2.6 Get Low Stock Products
+```bash
+GET /api/products/low-stock
+```
+
+#### 2.7 Create Product
+```bash
+POST /api/products
+Authorization: Bearer {token}
+Content-Type: application/json
+
+{
+  "name": "New Product",
+  "sku": "SKU999",
+  "description": "Product description",
+  "price": 999.99,
+  "stockQuantity": 100,
+  "minimumStockLevel": 10,
+  "categoryId": "guid",
+  "isActive": true
+}
+```
+
+#### 2.8 Update Product
+```bash
+PUT /api/products/{id}
+Authorization: Bearer {token}
+Content-Type: application/json
+
+{
+  "name": "Updated Product",
+  "description": "Updated description",
+  "price": 1199.99,
+  "categoryId": "guid"
+}
+```
+
+#### 2.9 Delete Product (Soft Delete)
+```bash
+DELETE /api/products/{id}
+Authorization: Bearer {token}
+```
+
+#### 2.10 Update Product Stock
+```bash
+PATCH /api/products/{id}/stock
+Authorization: Bearer {token}
+Content-Type: application/json
+
+{
+  "quantity": 50,
+  "adjustmentType": "Add",
+  "notes": "Stock replenishment"
+}
+```
+
+#### 2.11 Set Product Discount
+```bash
+PATCH /api/products/{id}/discount
+Authorization: Bearer {token}
+Content-Type: application/json
+
+{
+  "discountPrice": 799.99,
+  "discountStartDate": "2025-12-30T00:00:00Z",
+  "discountEndDate": "2026-01-31T23:59:59Z"
+}
+```
+
+#### 2.12 Remove Product Discount
+```bash
+DELETE /api/products/{id}/discount
+Authorization: Bearer {token}
+```
+
+#### 2.13 Activate Product
+```bash
+PATCH /api/products/{id}/activate
+Authorization: Bearer {token}
+```
+
+#### 2.14 Deactivate Product
+```bash
+PATCH /api/products/{id}/deactivate
+Authorization: Bearer {token}
+```
+
+---
+
+### 🛒 3. Orders Management
+
+#### 3.1 Create Order
+```bash
+POST /api/orders
+Authorization: Bearer {token}
+Content-Type: application/json
+
+{
+  "userId": "guid",
+  "items": [
+    {
+      "productId": "guid",
+      "quantity": 2,
+      "unitPrice": 999.99
+    }
+  ],
+  "shippingAddress": "123 Main St, City, Country",
+  "notes": "Please deliver carefully"
+}
+```
+
+#### 3.2 Get Order by ID
+```bash
+GET /api/orders/{id}
+Authorization: Bearer {token}
+```
+
+#### 3.3 Get Order by Order Number
+```bash
+GET /api/orders/number/ORD20251230001
+Authorization: Bearer {token}
+```
+
+#### 3.4 Get All Orders (Paginated)
+```bash
+GET /api/orders?pageNumber=1&pageSize=20
+Authorization: Bearer {token}
+```
+
+#### 3.5 Get My Orders
+```bash
+GET /api/orders/my-orders
+Authorization: Bearer {token}
+```
+
+#### 3.6 Update Order Status
+```bash
+PATCH /api/orders/{id}/status
+Authorization: Bearer {token}
+Content-Type: application/json
+
+{
+  "status": "Confirmed",
+  "notes": "Order confirmed"
+}
+```
+
+**Available Statuses:**
+- `Pending` - รอดำเนินการ
+- `Confirmed` - ยืนยันคำสั่งซื้อ
+- `Paid` - ชำระเงินแล้ว
+- `Shipped` - จัดส่งแล้ว
+- `Delivered` - ส่งถึงแล้ว
+- `Cancelled` - ยกเลิก
+
+#### 3.7 Add Item to Order
+```bash
+POST /api/orders/{id}/items
+Authorization: Bearer {token}
+Content-Type: application/json
+
+{
+  "productId": "guid",
+  "quantity": 1,
+  "unitPrice": 499.99
+}
+```
+
+#### 3.8 Update Order Item Quantity
+```bash
+PATCH /api/orders/{id}/items
+Authorization: Bearer {token}
+Content-Type: application/json
+
+{
+  "orderItemId": "guid",
+  "quantity": 3
+}
+```
+
+#### 3.9 Delete Order
+```bash
+DELETE /api/orders/{id}
+Authorization: Bearer {token}
+```
+
+---
+
+### 📧 4. Email Testing
+
+#### 4.1 Send Test Email
+```bash
+POST /api/email/send-test
+Content-Type: application/json
+
+{
+  "to": "recipient@example.com"
+}
+```
+
+#### 4.2 Send Welcome Email
+```bash
+POST /api/email/send-welcome
+Content-Type: application/json
+
+{
+  "email": "newuser@example.com",
+  "userName": "New User"
+}
+```
+
+#### 4.3 Send Low Stock Alert
+```bash
+POST /api/email/send-low-stock-alert
+Content-Type: application/json
+
+{
+  "productName": "Laptop Dell XPS 15",
+  "sku": "SKU001",
+  "currentStock": 5,
+  "minimumStock": 10
+}
+```
+
+---
+
+### ⚙️ 5. Background Jobs (Admin Only)
+
+#### 5.1 Trigger Stock Alert Job
+```bash
+POST /api/jobs/trigger-stock-alert
+Authorization: Bearer {token}
+```
+
+#### 5.2 Trigger Cleanup Tokens Job
+```bash
+POST /api/jobs/trigger-cleanup-tokens
+Authorization: Bearer {token}
+```
+
+#### 5.3 Schedule Delayed Job
+```bash
+POST /api/jobs/schedule-delayed-job?delayMinutes=5
+Authorization: Bearer {token}
+```
+
+#### 5.4 Get Job Status
+```bash
+GET /api/jobs/status/{jobId}
+Authorization: Bearer {token}
+```
+
+---
+
+### 📝 API Response Format
+
+All API endpoints return responses in a consistent format:
+
+**Success Response:**
+```json
+{
+  "success": true,
+  "data": { ... },
+  "message": "Operation successful"
+}
+```
+
+**Error Response:**
+```json
+{
+  "success": false,
+  "message": "Error message",
+  "errors": [
+    "Detailed error 1",
+    "Detailed error 2"
+  ]
+}
+```
+
+### 💡 Testing with VS Code REST Client
+ดูตัวอย่างการเรียก API แบบสมบูรณ์พร้อม authentication ใน [ProductManagement.API.http](src/ProductManagement.API/ProductManagement.API.http)
+
+## 🔄 Background Jobs (Hangfire)
+
+### Recurring Jobs
+1. **Product Stock Alert Job**
+   - Schedule: ทุกวันเวลา 09:00 น.
+   - หน้าที่: ตรวจสอบสินค้าที่ใกล้หมดและส่งอีเมลแจ้งเตือน
+   - Cron: `0 9 * * *`
+
+2. **Cleanup Expired Tokens Job**
+   - Schedule: ทุกวันเวลา 02:00 น.
+   - หน้าที่: ลบ refresh tokens ที่หมดอายุออกจากฐานข้อมูล
+   - Cron: `0 2 * * *`
+
+### Manual Job Triggers (Admin Only)
+- **POST** `/api/Jobs/trigger-stock-alert` - รันเช็คสต็อกทันที
+- **POST** `/api/Jobs/trigger-cleanup-tokens` - รันลบ tokens ทันที
+- **POST** `/api/Jobs/schedule-delayed-job?delayMinutes=5` - กำหนด job ที่จะรันภายหลัง
+- **GET** `/api/Jobs/status/{jobId}` - ตรวจสอบสถานะ job
+
+### Hangfire Dashboard
+- **URL**: `http://localhost:5219/hangfire`
+- **Features**:
+  - ดู job history
+  - Monitor job execution
+  - Retry failed jobs
+  - Schedule new jobs
+
+## 📧 Email Features
+
+### Available Email Types
+1. **Test Email** - ทดสอบการส่งอีเมล
+2. **Welcome Email** - ส่งให้ผู้ใช้ใหม่หลังสมัครสมาชิก
+3. **Low Stock Alert** - แจ้งเตือนสินค้าใกล้หมด
+4. **Order Confirmation** - ยืนยันคำสั่งซื้อ (ready)
+
+### Testing Email
+```bash
+# Send test email
+curl -X POST "http://localhost:5219/api/Email/send-test" \
+  -H "Content-Type: application/json" \
+  -d '{"to": "recipient@example.com"}'
+
+# Send welcome email
+curl -X POST "http://localhost:5219/api/Email/send-welcome" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "newuser@example.com",
+    "userName": "New User"
+  }'
+
+# Send low stock alert
+curl -X POST "http://localhost:5219/api/Email/send-low-stock-alert" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "productName": "Product Name",
+    "sku": "SKU001",
+    "currentStock": 5,
+    "minimumStock": 10
+  }'
+```
+
+## 🔄 RabbitMQ Message Flow
+
+### Events
+1. **Order Created Event**
+   - Published เมื่อสร้างคำสั่งซื้อใหม่
+   - Queue: `order.created`
+   - Consumer: บันทึก log, ส่ง notification
+
+2. **Stock Reservation Event**
+   - Published เมื่อ order status เป็น "Paid"
+   - Queue: `stock.reservation`
+   - Consumer: ลดจำนวนสินค้าในคลัง
+
+3. **Stock Release Event**
+   - Published เมื่อ order ถูกยกเลิก
+   - Queue: `stock.release`
+   - Consumer: คืนจำนวนสินค้าในคลัง
+
+4. **Product Updated Event**
+   - Published เมื่อมีการอัพเดทสินค้า
+   - Queue: `product.updated`
+   - Consumer: อัพเดท cache, sync ข้อมูล
+
+### Message Format Example
+```json
+{
+  "eventId": "guid",
+  "eventType": "OrderCreated",
+  "timestamp": "2025-12-30T10:00:00Z",
+  "payload": {
+    "orderId": "guid",
+    "orderNumber": "ORD20251230001",
+    "userId": "guid",
+    "totalAmount": 1999.99
+  }
+}
+```
+
+### RabbitMQ Management
+- **URL**: http://localhost:15672
+- **Credentials**: guest/guest
+- **Features**:
+  - Monitor queues and exchanges
+  - View message rates
+  - Manage bindings
+  - Purge queues
+
+## 🎯 Monitoring & Observability
+
+### Health Checks
+```bash
+# Check API health
+curl http://localhost:5219/health
+
+# Response
+{
+  "status": "Healthy",
+  "totalDuration": "00:00:00.1234567",
+  "entries": {
+    "database": {
+      "status": "Healthy",
+      "description": "Database connection is healthy"
+    }
+  }
+}
+```
+
+### Logging
+- **Location**: `logs/productmanagement-YYYYMMDD.txt` และ `src/ProductManagement.API/logs/`
+- **Format**: Structured JSON logging
+- **Levels**: Debug, Information, Warning, Error, Fatal
+- **Features**:
+  - Request/Response logging
+  - Exception tracking
+  - Performance metrics
+  - Correlation IDs
+
+### Metrics to Monitor
+- API response times
+- Database connection pool
+- Redis cache hit rate
+- RabbitMQ queue depth
+- Hangfire job success rate
+- Rate limit violations
+
+## 🐛 Troubleshooting
+
+### Common Issues
+
+#### 1. Database Connection Failed
+```
+Error: Cannot connect to SQL Server
+Solution:
+- ตรวจสอบ SQL Server service กำลังรันอยู่
+- ตรวจสอบ connection string ใน appsettings
+- ตรวจสอบ firewall settings
+- สำหรับ Docker: ใช้ server name "sqlserver" แทน "localhost"
+```
+
+#### 2. Redis Connection Failed
+```
+Error: Unable to connect to Redis
+Solution:
+- ระบบจะใช้ in-memory cache แทนอัตโนมัติ
+- ถ้าต้องการใช้ Redis: docker-compose up redis
+- ตรวจสอบ Redis service: redis-cli ping
+```
+
+#### 3. RabbitMQ Connection Failed
+```
+Error: Cannot connect to RabbitMQ
+Solution:
+- ตรวจสอบ RabbitMQ service: docker-compose ps rabbitmq
+- ตรวจสอบ credentials ใน appsettings
+- ดู RabbitMQ logs: docker-compose logs rabbitmq
+```
+
+#### 4. JWT Token Invalid
+```
+Error: 401 Unauthorized
+Solution:
+- ตรวจสอบ token ยังไม่หมดอายุ
+- ใช้ refresh token เพื่อขอ access token ใหม่
+- ตรวจสอบ JWT settings (SecretKey, Issuer, Audience)
+```
+
+#### 5. Migration Failed
+```
+Error: Migration failed
+Solution:
+- ลบ database และสร้างใหม่: dotnet ef database drop
+- Update migration: dotnet ef database update
+- ตรวจสอบ connection string
+```
+
+### Debug Mode
+เปิด detailed logging โดยแก้ไข `appsettings.Development.json`:
+```json
+{
+  "Serilog": {
+    "MinimumLevel": {
+      "Default": "Debug",
+      "Override": {
+        "Microsoft.EntityFrameworkCore": "Information"
+      }
+    }
+  }
+}
+```
 
 ## 🧪 Testing
 
@@ -248,20 +1019,35 @@ dotnet test tests/ProductManagement.IntegrationTests
 
 ## 📝 Configuration
 
-### Application Settings
-- [appsettings.json](src/ProductManagement.API/appsettings.json) - Production config
-- [appsettings.Development.json](src/ProductManagement.API/appsettings.Development.json) - Development config
+### Application Settings Files
+- [appsettings.json](src/ProductManagement.API/appsettings.json) - Base configuration
+- [appsettings.Development.json](src/ProductManagement.API/appsettings.Development.json) - Development overrides
+- [appsettings.Production.json](src/ProductManagement.API/appsettings.Production.json) - Production overrides
 
 ### Key Configurations
 
-**Database Connection**:
+#### 1. Database Connection
 ```json
 "ConnectionStrings": {
-  "DefaultConnection": "Server=localhost;Database=ProductManagementDB;..."
+  "DefaultConnection": "Server=localhost;Database=ProductManagementDB;User Id=sa;Password=YourStrongPassword;TrustServerCertificate=True;MultipleActiveResultSets=true",
+  "Redis": "localhost:6379"
 }
 ```
 
-**Email Configuration (Gmail SMTP)**:
+#### 2. JWT Settings
+```json
+"JwtSettings": {
+  "SecretKey": "YourSuperSecretKeyThatIsAtLeast32CharactersLong!",
+  "Issuer": "ProductManagementAPI",
+  "Audience": "ProductManagementClient",
+  "AccessTokenExpirationMinutes": 60,
+  "RefreshTokenExpirationDays": 7
+}
+```
+
+> ⚠️ **สำคัญ**: เปลี่ยน SecretKey ใน production และเก็บไว้ใน environment variables หรือ Azure Key Vault
+
+#### 3. Email Configuration (Gmail SMTP)
 ```json
 "EmailSettings": {
   "SmtpServer": "smtp.gmail.com",
@@ -274,37 +1060,61 @@ dotnet test tests/ProductManagement.IntegrationTests
 }
 ```
 
-> ⚠️ **สำคัญ**: สำหรับ Gmail คุณต้องใช้ **App Password** ไม่ใช่รหัสผ่านปกติ
->
-> **วิธีสร้าง Gmail App Password:**
+> ⚠️ **Gmail App Password Setup:**
 > 1. เปิด [Google Account Security](https://myaccount.google.com/security)
-> 2. เปิดใช้งาน **2-Step Verification** (ถ้ายังไม่ได้เปิด)
+> 2. เปิดใช้งาน **2-Step Verification**
 > 3. ไปที่ [App Passwords](https://myaccount.google.com/apppasswords)
-> 4. เลือก "Mail" และอุปกรณ์ของคุณ
-> 5. คัดลอก App Password ที่ได้ (16 ตัวอักษร) ไปใส่ใน `appsettings.json`
->
-> **การทดสอบการส่ง Email:**
-> ```bash
-> curl -X POST "http://localhost:5219/api/Email/send-test" \
->   -H "Content-Type: application/json" \
->   -d '{"to": "recipient@example.com"}'
-> ```
->
-> **Email Features:**
-> - ✅ Send test emails
-> - ✅ Send welcome emails to new users
-> - ✅ Send low stock alerts
-> - ✅ HTML email templates
-> - ✅ Async email sending
+> 4. สร้าง App Password สำหรับ "Mail"
+> 5. คัดลอก 16 ตัวอักษรไปใส่ใน `Password` field
 
-**Logging (Serilog)**:
-- Log file location: `logs/productmanagement-YYYYMMDD.txt`
-- Rolling interval: Daily
-- Minimum level: Information (Warning for Microsoft/EF Core)
+#### 4. RabbitMQ Configuration
+```json
+"RabbitMQ": {
+  "HostName": "localhost",
+  "Port": 5672,
+  "UserName": "guest",
+  "Password": "guest",
+  "VirtualHost": "/",
+  "OrderExchange": "order.exchange",
+  "ProductExchange": "product.exchange",
+  "OrderCreatedQueue": "order.created",
+  "StockReservationQueue": "stock.reservation",
+  "StockReleaseQueue": "stock.release",
+  "ProductUpdatedQueue": "product.updated"
+}
+```
 
-**CORS**:
-- Development: AllowAll policy
-- Production: Restricted to specific domains
+#### 5. Rate Limiting
+```json
+"IpRateLimiting": {
+  "EnableEndpointRateLimiting": true,
+  "GeneralRules": [
+    {
+      "Endpoint": "*",
+      "Period": "1m",
+      "Limit": 60
+    },
+    {
+      "Endpoint": "POST:/api/Auth/login",
+      "Period": "1m",
+      "Limit": 5
+    }
+  ]
+}
+```
+
+#### 6. Logging (Serilog)
+- **Log Location**: `logs/productmanagement-YYYYMMDD.txt`
+- **Rolling Interval**: Daily
+- **Minimum Level**: Information
+- **Override Levels**:
+  - Microsoft: Warning
+  - EntityFrameworkCore: Warning
+  - Hangfire: Information
+
+#### 7. CORS
+- **Development**: AllowAll policy (อนุญาตทุก origin)
+- **Production**: Restricted policy (ระบุ domain ที่อนุญาต)
 
 ## 🎯 Development Features
 
@@ -327,35 +1137,110 @@ dotnet test tests/ProductManagement.IntegrationTests
 
 ## 📊 Database
 
-### Entities
-- **Product** - สินค้า (Name, SKU, Price, Stock, Status)
+### Entity Relationship
+- **User** - ผู้ใช้งานระบบ
+  - Roles: Admin, Manager, User
+  - Authentication & Profile management
+
+- **Product** - สินค้า
+  - Name, SKU, Price, Stock, Category
+  - Discount pricing with date range
+  - Status tracking (Active/Inactive)
+  - Low stock alerts
+
 - **Category** - หมวดหมู่สินค้า
-- **ProductImage** - รูปภาพสินค้า
+  - Hierarchical structure support
+
+- **Order** - คำสั่งซื้อ
+  - Order number generation (ORDYYYYMMDDnnn)
+  - Status workflow (Pending → Confirmed → Paid → Shipped → Delivered)
+  - Cancel with stock release
+  - Automatic totals calculation
+
+- **OrderItem** - รายการสินค้าในคำสั่งซื้อ
+  - Product snapshot at order time
+  - Quantity and price tracking
+
 - **Review** - รีวิวสินค้า
+  - Rating (1-5 stars)
+  - Comment and user tracking
 
-### Features
-- Audit fields (CreatedAt, CreatedBy, UpdatedAt, UpdatedBy)
-- Soft Delete support
-- Computed properties (EffectivePrice, IsLowStock, AverageRating)
-- Retry logic & Connection resilience
+- **ProductImage** - รูปภาพสินค้า
+  - Multiple images per product
+  - Display order support
 
-## 🔐 Security Features (Planned)
-- [ ] JWT Authentication
-- [ ] Role-Based Authorization
-- [ ] API Rate Limiting
-- [ ] Input Sanitization
-- [ ] HTTPS Enforcement
+### Database Features
+- **Audit Fields**: CreatedAt, CreatedBy, UpdatedAt, UpdatedBy
+- **Soft Delete**: IsDeleted, DeletedAt, DeletedBy
+- **Computed Properties**: EffectivePrice, IsLowStock, AverageRating
+- **Connection Resilience**: Auto-retry (3 attempts, 30s max delay)
+- **Migration Management**: Code-first with EF Core
+
+### Seed Data
+Default admin user จะถูกสร้างอัตโนมัติเมื่อรันครั้งแรก:
+- **Email**: admin@example.com
+- **Password**: Admin@123 (ควรเปลี่ยนทันที)
+
+## 🔐 Security Features
+
+### Implemented
+- ✅ **JWT Authentication** - Token-based auth with access & refresh tokens
+- ✅ **Password Hashing** - SHA-256 with salt
+- ✅ **Role-Based Authorization** - Admin, Manager, User roles
+- ✅ **API Rate Limiting** - Endpoint-specific limits
+- ✅ **CORS Configuration** - Environment-based policies
+- ✅ **HTTPS Redirection** - Force secure connections
+- ✅ **Input Validation** - FluentValidation on all inputs
+- ✅ **Audit Logging** - Track who created/modified what
+
+### Security Best Practices
+1. **Secrets Management**
+   - Use environment variables for sensitive data
+   - Never commit secrets to repository
+   - Use Azure Key Vault in production
+
+2. **Token Management**
+   - Short-lived access tokens (60 minutes)
+   - Long-lived refresh tokens (7 days)
+   - Automatic token cleanup job
+
+3. **Rate Limiting**
+   - General API: 60 requests/minute
+   - Login endpoint: 5 requests/minute
+   - Registration: 10 requests/hour
+
+4. **Password Requirements**
+   - Minimum 8 characters
+   - Requires uppercase, lowercase, number, special character
 
 ## 📚 Additional Resources
 
 ### Documentation
 - [API Documentation](src/ProductManagement.API/ProductManagement.API.http) - HTTP request examples
 - [Entity Models](src/ProductManagement.Domain/Entities/) - Domain entities
+- [Swagger UI](http://localhost:5219/swagger) - Interactive API docs
+- [Hangfire Dashboard](http://localhost:5219/hangfire) - Background jobs monitoring
+- [RabbitMQ Management](http://localhost:15672) - Message queue monitoring
 
-### Learning Resources
-- [Clean Architecture](https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html)
-- [Domain-Driven Design](https://martinfowler.com/bliki/DomainDrivenDesign.html)
+### Architecture References
+- [Clean Architecture](https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html) by Uncle Bob
+- [Domain-Driven Design](https://martinfowler.com/bliki/DomainDrivenDesign.html) by Martin Fowler
+- [Repository Pattern](https://martinfowler.com/eaaCatalog/repository.html)
+- [Unit of Work Pattern](https://martinfowler.com/eaaCatalog/unitOfWork.html)
+
+### Technology Documentation
+- [.NET 9.0 Documentation](https://docs.microsoft.com/en-us/dotnet/)
+- [ASP.NET Core Documentation](https://docs.microsoft.com/en-us/aspnet/core/)
+- [Entity Framework Core](https://docs.microsoft.com/en-us/ef/core/)
+- [Hangfire Documentation](https://docs.hangfire.io/)
+- [RabbitMQ .NET Client](https://www.rabbitmq.com/dotnet.html)
+- [Serilog Documentation](https://serilog.net/)
+
+### Best Practices
 - [ASP.NET Core Best Practices](https://docs.microsoft.com/en-us/aspnet/core/fundamentals/best-practices)
+- [C# Coding Conventions](https://docs.microsoft.com/en-us/dotnet/csharp/fundamentals/coding-style/coding-conventions)
+- [RESTful API Design](https://restfulapi.net/)
+- [Microservices Patterns](https://microservices.io/patterns/)
 
 ## 🤝 Contributing
 
@@ -364,6 +1249,45 @@ dotnet test tests/ProductManagement.IntegrationTests
 3. Commit changes (`git commit -m 'Add some AmazingFeature'`)
 4. Push to branch (`git push origin feature/AmazingFeature`)
 5. Open Pull Request
+
+## 🗺️ Roadmap
+
+### Phase 1 - Core Features ✅ (Completed)
+- [x] Clean Architecture setup
+- [x] Product CRUD operations
+- [x] JWT Authentication & Authorization
+- [x] Order management
+- [x] Background jobs (Hangfire)
+- [x] Email notifications
+- [x] RabbitMQ integration
+- [x] Redis caching
+- [x] Rate limiting
+
+### Phase 2 - Advanced Features 🚧 (In Progress)
+- [ ] Payment integration (Stripe/Omise)
+- [ ] Image upload to cloud storage (Azure Blob/AWS S3)
+- [ ] Advanced search with Elasticsearch
+- [ ] Real-time notifications (SignalR)
+- [ ] GraphQL API
+- [ ] API versioning
+
+### Phase 3 - DevOps & Production 📋 (Planned)
+- [ ] Complete unit tests (>80% coverage)
+- [ ] Integration tests
+- [ ] CI/CD pipeline (GitHub Actions)
+- [ ] Kubernetes deployment
+- [ ] API Gateway (Ocelot)
+- [ ] Service mesh (Istio)
+- [ ] Monitoring (Prometheus + Grafana)
+- [ ] Distributed tracing (Jaeger)
+
+### Phase 4 - Microservices 🔮 (Future)
+- [ ] Split into microservices
+- [ ] Event sourcing with EventStore
+- [ ] CQRS with MediatR
+- [ ] API Gateway
+- [ ] Service discovery (Consul)
+- [ ] Distributed cache (Redis Cluster)
 
 ## 📄 License
 
@@ -383,52 +1307,14 @@ This project is licensed under the MIT License
 
 ---
 
-Made with ❤️ using .NET 9.0
-## 📊 Architecture Diagram
-```
-┌─────────────────────────────────────────────────────────┐
-│                    API Layer (Controllers)               │
-│  ┌───────────────┐  ┌────────────────┐  ┌────────────┐ │
-│  │ Products      │  │ Categories     │  │ Reviews    │ │
-│  │ Controller    │  │ Controller     │  │ Controller │ │
-│  └───────┬───────┘  └────────┬───────┘  └──────┬─────┘ │
-└──────────┼──────────────────┼─────────────────┼────────┘
-           │                  │                  │
-           │                  ▼                  │
-           │         ┌────────────────┐          │
-           └────────►│ Middleware     │◄─────────┘
-                     │ - Exception    │
-                     │ - Logging      │
-                     └────────┬───────┘
-                              │
-┌─────────────────────────────▼───────────────────────────┐
-│              Application Layer (Services)                │
-│  ┌───────────────────────────────────────────────────┐  │
-│  │              Product Service                      │  │
-│  │  - CreateAsync()    - UpdateAsync()               │  │
-│  │  - GetByIdAsync()   - DeleteAsync()               │  │
-│  │  - SearchAsync()    - UpdateStockAsync()          │  │
-│  └───────────────────────┬───────────────────────────┘  │
-│                          │                               │
-│  ┌───────────────────────▼───────────────────────────┐  │
-│  │           AutoMapper & FluentValidation           │  │
-│  └───────────────────────┬───────────────────────────┘  │
-└────────────────────────────┼─────────────────────────────┘
-                             │
-┌────────────────────────────▼─────────────────────────────┐
-│            Infrastructure Layer (Data Access)             │
-│  ┌──────────────────┐         ┌─────────────────────┐   │
-│  │  Unit of Work    │◄────────┤  ApplicationDbContext│   │
-│  │                  │         │  - Products          │   │
-│  │  ┌────────────┐  │         │  - Categories        │   │
-│  │  │ Products   │  │         │  - Reviews           │   │
-│  │  │ Repository │  │         └─────────────────────┘   │
-│  │  └────────────┘  │                                    │
-│  └──────────────────┘                                    │
-└──────────────────────────┬───────────────────────────────┘
-                           │
-                           ▼
-                  ┌────────────────┐
-                  │  SQL Server    │
-                  │  Database      │
-                  └────────────────┘
+<div align="center">
+
+### 🌟 ถ้าโปรเจกต์นี้มีประโยชน์ อย่าลืมกด Star ⭐
+
+**Made with ❤️ using .NET 9.0**
+
+[![.NET](https://img.shields.io/badge/.NET-9.0-512BD4?logo=dotnet)](https://dotnet.microsoft.com/)
+[![C#](https://img.shields.io/badge/C%23-13-239120?logo=c-sharp)](https://docs.microsoft.com/en-us/dotnet/csharp/)
+[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
+</div>

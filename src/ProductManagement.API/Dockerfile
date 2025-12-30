@@ -4,24 +4,24 @@
 # ========================================
 
 # Stage 1: Build
-FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
 
 # Copy solution and project files
 COPY ["ProductManagement.sln", "./"]
-COPY ["ProductManagement.API/ProductManagement.API.csproj", "ProductManagement.API/"]
-COPY ["ProductManagement.Application/ProductManagement.Application.csproj", "ProductManagement.Application/"]
-COPY ["ProductManagement.Domain/ProductManagement.Domain.csproj", "ProductManagement.Domain/"]
-COPY ["ProductManagement.Infrastructure/ProductManagement.Infrastructure.csproj", "ProductManagement.Infrastructure/"]
+COPY ["src/ProductManagement.API/ProductManagement.API.csproj", "src/ProductManagement.API/"]
+COPY ["src/ProductManagement.Application/ProductManagement.Application.csproj", "src/ProductManagement.Application/"]
+COPY ["src/ProductManagement.Domain/ProductManagement.Domain.csproj", "src/ProductManagement.Domain/"]
+COPY ["src/ProductManagement.Infrastructure/ProductManagement.Infrastructure.csproj", "src/ProductManagement.Infrastructure/"]
 
 # Restore dependencies
-RUN dotnet restore "ProductManagement.API/ProductManagement.API.csproj"
+RUN dotnet restore "src/ProductManagement.API/ProductManagement.API.csproj"
 
 # Copy all source code
 COPY . .
 
 # Build the application
-WORKDIR "/src/ProductManagement.API"
+WORKDIR "/src/src/ProductManagement.API"
 RUN dotnet build "ProductManagement.API.csproj" -c Release -o /app/build
 
 # Stage 2: Publish
@@ -29,7 +29,7 @@ FROM build AS publish
 RUN dotnet publish "ProductManagement.API.csproj" -c Release -o /app/publish /p:UseAppHost=false
 
 # Stage 3: Runtime
-FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
+FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS final
 WORKDIR /app
 
 # Create non-root user for security

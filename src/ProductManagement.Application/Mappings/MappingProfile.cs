@@ -25,5 +25,24 @@ public class MappingProfile : Profile
         CreateMap<User, UserDto>()
             .ForMember(dest => dest.Roles, opt => opt.MapFrom(src =>
                 src.UserRoles.Select(ur => ur.Role.Name).ToList()));
+
+        // Order mappings
+        CreateMap<Order, OrderDto>()
+            .ForMember(dest => dest.UserName,
+                opt => opt.MapFrom(src => src.User.Email))
+            .ForMember(dest => dest.Status,
+                opt => opt.MapFrom(src => src.Status.ToString()))
+            .ForMember(dest => dest.Items,
+                opt => opt.MapFrom(src => src.OrderItems));
+
+        CreateMap<Order, OrderSummaryDto>()
+            .ForMember(dest => dest.UserName,
+                opt => opt.MapFrom(src => src.User.Email))
+            .ForMember(dest => dest.Status,
+                opt => opt.MapFrom(src => src.Status.ToString()))
+            .ForMember(dest => dest.ItemCount,
+                opt => opt.MapFrom(src => src.OrderItems.Count));
+
+        CreateMap<OrderItem, OrderItemDto>();
     }
 }

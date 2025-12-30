@@ -54,6 +54,9 @@ try
     builder.Services.Configure<EmailSettings>(
         builder.Configuration.GetSection(EmailSettings.SectionName));
 
+    builder.Services.Configure<RabbitMQSettings>(
+        builder.Configuration.GetSection(RabbitMQSettings.SectionName));
+
     var jwtSettings = builder.Configuration
         .GetSection(JwtSettings.SectionName)
         .Get<JwtSettings>() ?? throw new InvalidOperationException("JWT settings not configured");
@@ -140,6 +143,7 @@ try
     builder.Services.AddScoped(typeof(IRepository<,>), typeof(Repository<,>));
     builder.Services.AddScoped<IProductRepository, ProductRepository>();
     builder.Services.AddScoped<IUserRepository, UserRepository>();
+    builder.Services.AddScoped<IOrderRepository, OrderRepository>();
     builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
     // ============================================
@@ -151,6 +155,13 @@ try
     builder.Services.AddScoped<IPasswordHasher, PasswordHasher>();
     builder.Services.AddScoped<IEmailService, EmailService>();
     builder.Services.AddScoped<IBackgroundJobService, HangfireBackgroundJobService>();
+    builder.Services.AddScoped<IOrderService, OrderService>();
+
+    // ============================================
+    // 8.1. RabbitMQ Configuration
+    // ============================================
+    builder.Services.AddSingleton<IMessagePublisher, RabbitMQMessagePublisher>();
+    builder.Services.AddHostedService<RabbitMQMessageConsumer>();
 
     // Register background jobs
     builder.Services.AddScoped<ProductStockAlertJob>();

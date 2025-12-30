@@ -18,6 +18,7 @@ public class UnitOfWork : IUnitOfWork
     private IRepository<Review, Guid>? _reviews;
     private IUserRepository? _users;
     private IRepository<Role, Guid>? _roles;
+    private IOrderRepository? _orders;
 
     public UnitOfWork(ApplicationDbContext context, IConfiguration configuration)
     {
@@ -39,6 +40,9 @@ public class UnitOfWork : IUnitOfWork
 
     public IRepository<Role, Guid> Roles =>
         _roles ??= new Repository<Role, Guid>(_context);
+
+    public IOrderRepository Orders =>
+        _orders ??= new OrderRepository(_context);
 
     public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
