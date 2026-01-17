@@ -97,26 +97,37 @@ try
     // ============================================
     // 5. Database Configuration
     // ============================================
-    builder.Services.AddDbContext<ApplicationDbContext>(options =>
+    if (builder.Environment.EnvironmentName == "Testing")
     {
-        options.UseSqlServer(
-            builder.Configuration.GetConnectionString("DefaultConnection"),
-            sqlOptions =>
-            {
-                sqlOptions.MigrationsAssembly(typeof(ApplicationDbContext).Assembly.FullName);
-                sqlOptions.EnableRetryOnFailure(
-                    maxRetryCount: 3,
-                    maxRetryDelay: TimeSpan.FromSeconds(30),
-                    errorNumbersToAdd: null);
-                sqlOptions.CommandTimeout(30);
-            });
-
-        if (builder.Environment.IsDevelopment())
+        // Use InMemory database for integration tests
+        builder.Services.AddDbContext<ApplicationDbContext>(options =>
         {
-            options.EnableSensitiveDataLogging();
-            options.EnableDetailedErrors();
-        }
-    });
+            options.UseInMemoryDatabase("TestDatabase");
+        });
+    }
+    else
+    {
+        builder.Services.AddDbContext<ApplicationDbContext>(options =>
+        {
+            options.UseSqlServer(
+                builder.Configuration.GetConnectionString("DefaultConnection"),
+                sqlOptions =>
+                {
+                    sqlOptions.MigrationsAssembly(typeof(ApplicationDbContext).Assembly.FullName);
+                    sqlOptions.EnableRetryOnFailure(
+                        maxRetryCount: 3,
+                        maxRetryDelay: TimeSpan.FromSeconds(30),
+                        errorNumbersToAdd: null);
+                    sqlOptions.CommandTimeout(30);
+                });
+
+            if (builder.Environment.IsDevelopment())
+            {
+                options.EnableSensitiveDataLogging();
+                options.EnableDetailedErrors();
+            }
+        });
+    }
 
     // ============================================
     // 6. Hangfire Configuration
@@ -442,3 +453,8 @@ public class HangfireAuthorizationFilter : IDashboardAuthorizationFilter
         return true;
     }
 }
+
+// ============================================
+// Make Program accessible for integration tests
+// ============================================
+public partial class Program { }
