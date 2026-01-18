@@ -1350,8 +1350,8 @@ Default admin user จะถูกสร้างอัตโนมัติเ�
 - [x] Integration tests for API endpoints
 - [x] Test Data Builders (Product, Category, User)
 - [x] Parameterized tests with Theory/InlineData
-- [ ] Increase test coverage (>80%)
-- [ ] Performance/Load testing
+- [x] Increase test coverage (>80%)
+- [x] Performance/Load testing
 
 ### Phase 3 - Advanced Features 📋 (Planned)
 - [ ] Payment integration (Stripe/Omise)
