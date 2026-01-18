@@ -104,14 +104,16 @@ public class ProductTests
         product.UpdatedAt.Should().NotBeNull();
     }
 
-    [Fact]
-    public void UpdateStock_WithNegativeQuantity_ShouldThrowException()
+    [Theory]
+    [InlineData(-10)]       // Negative
+    [InlineData(-1)]        // Minimum negative
+    public void UpdateStock_WithNegativeQuantity_ShouldThrowException(int negativeQuantity)
     {
         // Arrange
         var product = new ProductBuilder().Build();
 
         // Act
-        Action act = () => product.UpdateStock(-10, "TestUser");
+        Action act = () => product.UpdateStock(negativeQuantity, "TestUser");
 
         // Assert
         act.Should().Throw<InvalidOperationException>()
@@ -119,9 +121,26 @@ public class ProductTests
     }
 
     [Theory]
-    [InlineData(50, 150)]  // AddStock: 100 + 50 = 150
-    [InlineData(25, 125)]  // AddStock: 100 + 25 = 125
-    [InlineData(100, 200)] // AddStock: 100 + 100 = 200
+    [InlineData(0)]         // Boundary: zero stock
+    [InlineData(1)]         // Boundary: minimum valid
+    [InlineData(10000)]     // High value
+    public void UpdateStock_WithBoundaryQuantities_ShouldUpdateStock(int quantity)
+    {
+        // Arrange
+        var product = new ProductBuilder().Build();
+
+        // Act
+        product.UpdateStock(quantity, "TestUser");
+
+        // Assert
+        product.StockQuantity.Should().Be(quantity);
+    }
+
+    [Theory]
+    [InlineData(1, 101)]    // AddStock: minimum valid
+    [InlineData(50, 150)]   // AddStock: normal case
+    [InlineData(100, 200)]  // AddStock: double stock
+    [InlineData(1000, 1100)]// AddStock: large value
     public void AddStock_WithValidQuantity_ShouldIncreaseStock(int amountToAdd, int expectedStock)
     {
         // Arrange
@@ -137,9 +156,27 @@ public class ProductTests
     }
 
     [Theory]
-    [InlineData(30, 70)]   // ReduceStock: 100 - 30 = 70
-    [InlineData(50, 50)]   // ReduceStock: 100 - 50 = 50
-    [InlineData(100, 0)]   // ReduceStock: 100 - 100 = 0
+    [InlineData(0)]         // AddStock: zero not allowed
+    [InlineData(-1)]        // AddStock: negative not allowed
+    [InlineData(-100)]      // AddStock: large negative
+    public void AddStock_WithInvalidQuantity_ShouldThrowException(int invalidQuantity)
+    {
+        // Arrange
+        var product = new ProductBuilder().Build();
+
+        // Act
+        Action act = () => product.AddStock(invalidQuantity, "TestUser");
+
+        // Assert
+        act.Should().Throw<InvalidOperationException>()
+            .WithMessage("Quantity must be positive");
+    }
+
+    [Theory]
+    [InlineData(1, 99)]     // ReduceStock: minimum reduce
+    [InlineData(30, 70)]    // ReduceStock: normal case
+    [InlineData(50, 50)]    // ReduceStock: half stock
+    [InlineData(100, 0)]    // ReduceStock: all stock (boundary)
     public void ReduceStock_WithValidQuantity_ShouldDecreaseStock(int amountToReduce, int expectedStock)
     {
         // Arrange
@@ -154,48 +191,75 @@ public class ProductTests
         product.StockQuantity.Should().Be(expectedStock);
     }
 
-    [Fact]
-    public void ReduceStock_WithQuantityGreaterThanStock_ShouldThrowException()
+    [Theory]
+    [InlineData(0)]         // ReduceStock: zero not allowed
+    [InlineData(-1)]        // ReduceStock: negative not allowed
+    [InlineData(-100)]      // ReduceStock: large negative
+    public void ReduceStock_WithInvalidQuantity_ShouldThrowException(int invalidQuantity)
+    {
+        // Arrange
+        var product = new ProductBuilder().Build();
+
+        // Act
+        Action act = () => product.ReduceStock(invalidQuantity, "TestUser");
+
+        // Assert
+        act.Should().Throw<InvalidOperationException>()
+            .WithMessage("Quantity must be positive");
+    }
+
+    [Theory]
+    [InlineData(101)]       // Exceeds stock by 1
+    [InlineData(200)]       // Double the stock
+    [InlineData(int.MaxValue)]  // Maximum value
+    public void ReduceStock_WithQuantityGreaterThanStock_ShouldThrowException(int quantityToReduce)
     {
         // Arrange
         var product = new ProductBuilder()
-            .WithStock(50)
+            .WithStock(100)
             .Build();
 
         // Act
-        Action act = () => product.ReduceStock(100, "TestUser");
+        Action act = () => product.ReduceStock(quantityToReduce, "TestUser");
 
         // Assert
         act.Should().Throw<InvalidOperationException>()
             .WithMessage("Insufficient stock");
     }
 
-    [Fact]
-    public void SetDiscount_WithValidPrice_ShouldSetDiscountPrice()
+    [Theory]
+    [InlineData(0.01, 100)]      // SetDiscount: minimum valid price
+    [InlineData(50, 100)]        // SetDiscount: 50% discount
+    [InlineData(99.99, 100)]     // SetDiscount: near full price
+    [InlineData(1, 100)]         // SetDiscount: minimal discount
+    public void SetDiscount_WithValidPrice_ShouldSetDiscountPrice(decimal discountPrice, decimal regularPrice)
     {
         // Arrange
         var product = new ProductBuilder()
-            .WithPrice(100m)
+            .WithPrice(regularPrice)
             .Build();
 
         // Act
-        product.SetDiscount(80m, "TestUser");
+        product.SetDiscount(discountPrice, "TestUser");
 
         // Assert
-        product.DiscountPrice.Should().Be(80m);
-        product.EffectivePrice.Should().Be(80m);
+        product.DiscountPrice.Should().Be(discountPrice);
+        product.EffectivePrice.Should().Be(discountPrice);
     }
 
-    [Fact]
-    public void SetDiscount_WithPriceGreaterThanRegularPrice_ShouldThrowException()
+    [Theory]
+    [InlineData(100, 100)]       // SetDiscount: equal to regular price
+    [InlineData(120, 100)]       // SetDiscount: greater than regular price
+    [InlineData(1000, 100)]      // SetDiscount: much greater
+    public void SetDiscount_WithInvalidPrice_ShouldThrowException(decimal discountPrice, decimal regularPrice)
     {
         // Arrange
         var product = new ProductBuilder()
-            .WithPrice(100m)
+            .WithPrice(regularPrice)
             .Build();
 
         // Act
-        Action act = () => product.SetDiscount(120m, "TestUser");
+        Action act = () => product.SetDiscount(discountPrice, "TestUser");
 
         // Assert
         act.Should().Throw<InvalidOperationException>()
