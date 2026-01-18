@@ -33,17 +33,11 @@ public class CategoryService : ICategoryService
         {
             _logger.LogInformation("Creating category: {Name}", request.Name);
 
-            // Check if category with same name exists
-            var existing = await _unitOfWork.Categories.FindAsync(
-                c => c.Name == request.Name,
-                cancellationToken);
-
-            if (existing.Any())
+            if (await CategoryExistsAsync(request.Name, cancellationToken))
             {
                 return Result<CategoryDetailDto>.Failure($"Category '{request.Name}' already exists");
             }
 
-            // Create category
             var category = Category.Create(
                 request.Name,
                 request.Description,
@@ -63,6 +57,14 @@ public class CategoryService : ICategoryService
             _logger.LogError(ex, "Error creating category");
             return Result<CategoryDetailDto>.Failure("Failed to create category", ex.Message);
         }
+    }
+
+    private async Task<bool> CategoryExistsAsync(string name, CancellationToken cancellationToken)
+    {
+        var existing = await _unitOfWork.Categories.FindAsync(
+            c => c.Name == name,
+            cancellationToken);
+        return existing.Any();
     }
 
     public async Task<Result<CategoryDetailDto>> GetByIdAsync(
