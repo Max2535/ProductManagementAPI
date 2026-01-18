@@ -66,15 +66,18 @@ public class ProductTests
             .WithMessage("Product name is required");
     }
 
-    [Fact]
-    public void Create_WithNegativePrice_ShouldThrowException()
+    [Theory]
+    [InlineData(-10)]
+    [InlineData(0)]
+    [InlineData(-0.01)]
+    public void Create_WithInvalidPrice_ShouldThrowException(decimal invalidPrice)
     {
         // Act
         Action act = () => Product.Create(
             "Product",
             "Description",
             "SKU-001",
-            -10m,
+            invalidPrice,
             100,
             Guid.NewGuid(),
             "TestUser");
@@ -115,8 +118,11 @@ public class ProductTests
             .WithMessage("Stock quantity cannot be negative");
     }
 
-    [Fact]
-    public void AddStock_WithValidQuantity_ShouldIncreaseStock()
+    [Theory]
+    [InlineData(50, 150)]  // AddStock: 100 + 50 = 150
+    [InlineData(25, 125)]  // AddStock: 100 + 25 = 125
+    [InlineData(100, 200)] // AddStock: 100 + 100 = 200
+    public void AddStock_WithValidQuantity_ShouldIncreaseStock(int amountToAdd, int expectedStock)
     {
         // Arrange
         var product = new ProductBuilder()
@@ -124,14 +130,17 @@ public class ProductTests
             .Build();
 
         // Act
-        product.AddStock(50, "TestUser");
+        product.AddStock(amountToAdd, "TestUser");
 
         // Assert
-        product.StockQuantity.Should().Be(150);
+        product.StockQuantity.Should().Be(expectedStock);
     }
 
-    [Fact]
-    public void ReduceStock_WithValidQuantity_ShouldDecreaseStock()
+    [Theory]
+    [InlineData(30, 70)]   // ReduceStock: 100 - 30 = 70
+    [InlineData(50, 50)]   // ReduceStock: 100 - 50 = 50
+    [InlineData(100, 0)]   // ReduceStock: 100 - 100 = 0
+    public void ReduceStock_WithValidQuantity_ShouldDecreaseStock(int amountToReduce, int expectedStock)
     {
         // Arrange
         var product = new ProductBuilder()
@@ -139,10 +148,10 @@ public class ProductTests
             .Build();
 
         // Act
-        product.ReduceStock(30, "TestUser");
+        product.ReduceStock(amountToReduce, "TestUser");
 
         // Assert
-        product.StockQuantity.Should().Be(70);
+        product.StockQuantity.Should().Be(expectedStock);
     }
 
     [Fact]
