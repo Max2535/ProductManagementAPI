@@ -18,6 +18,11 @@ public class MappingProfile : Profile
             .ForMember(dest => dest.PrimaryImageUrl,
                 opt => opt.MapFrom(src => src.Images.FirstOrDefault(i => i.IsPrimary).ImageUrl));
 
+        CreateMap<Category, CategoryDto>();
+        CreateMap<Category, CategoryDetailDto>()
+            .ForMember(dest => dest.ProductCount,
+                opt => opt.MapFrom(src => src.Products.Count));
+
         CreateMap<ProductImage, ProductImageDto>();
         CreateMap<Category, CategoryDto>();
 
