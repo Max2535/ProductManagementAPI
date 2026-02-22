@@ -36,12 +36,12 @@ jobs:
         dotnet test src/ProductManagement.UnitTests/ProductManagement.UnitTests.csproj \
           /p:CollectCoverage=true \
           /p:CoverletOutputFormat=opencover \
-          /p:CoverletOutput=./coverage/unit.opencover.xml
+          /p:CoverletOutput=${{ github.workspace }}/coverage/unit.opencover.xml
         dotnet test src/ProductManagement.IntegrationTests/ProductManagement.IntegrationTests.csproj \
           /p:CollectCoverage=true \
           /p:CoverletOutputFormat=opencover \
-          /p:CoverletOutput=./coverage/integration.opencover.xml
-        reportgenerator -reports:"coverage/*.opencover.xml" -targetdir:"coveragereport" -reporttypes:Html
+          /p:CoverletOutput=${{ github.workspace }}/coverage/integration.opencover.xml
+        reportgenerator -reports:"${{ github.workspace }}/coverage/*.opencover.xml" -targetdir:"coveragereport" -reporttypes:Html
 
     - name: Upload Coverage Report
       uses: actions/upload-artifact@v4
