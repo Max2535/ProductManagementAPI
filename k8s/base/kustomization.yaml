@@ -1,0 +1,22 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: productmanagement
+
+resources:
+- ../namespace.yaml
+- ../configmap.yaml
+- ../secret.yaml
+- ../sqlserver-pvc.yaml
+- ../sqlserver-deployment.yaml
+- ../sqlserver-service.yaml
+- ../redis-pvc.yaml
+- ../redis-deployment.yaml
+- ../redis-service.yaml
+- ../api-deployment.yaml
+- ../api-service.yaml
+
+commonLabels:
+  app.kubernetes.io/name: productmanagement
+  app.kubernetes.io/instance: productmanagement
+  app.kubernetes.io/managed-by: argocd

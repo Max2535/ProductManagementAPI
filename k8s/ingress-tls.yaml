@@ -1,0 +1,38 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: productmanagement-ingress-tls
+  namespace: productmanagement
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    cert-manager.io/cluster-issuer: "selfsigned-issuer"
+spec:
+  ingressClassName: nginx
+  tls:
+  - hosts:
+    - productmanagement.local
+    - api.productmanagement.local
+    secretName: productmanagement-tls
+  rules:
+  - host: api.productmanagement.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: productmanagement-api-service
+            port:
+              number: 80
+  - host: productmanagement.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: productmanagement-api-service
+            port:
+              number: 80

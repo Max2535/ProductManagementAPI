@@ -1,0 +1,130 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: productmanagement-api
+  namespace: productmanagement
+  labels:
+    app: productmanagement-api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: productmanagement-api
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: productmanagement-api
+        version: v1
+    spec:
+      initContainers:
+      # Wait for SQL Server to be ready
+      - name: wait-for-db
+        image: busybox:1.35
+        command:
+        - sh
+        - -c
+        - |
+          until nc -z sqlserver-service 1433; do
+            echo "Waiting for SQL Server..."
+            sleep 5
+          done
+          echo "SQL Server is ready!"
+
+      # Wait for Redis to be ready
+      - name: wait-for-redis
+        image: busybox:1.35
+        command:
+        - sh
+        - -c
+        - |
+          until nc -z redis-service 6379; do
+            echo "Waiting for Redis..."
+            sleep 2
+          done
+          echo "Redis is ready!"
+
+      containers:
+      - name: api
+        image: productmanagement-api:latest
+        imagePullPolicy: IfNotPresent  # Use local image
+        ports:
+        - containerPort: 8080
+          name: http
+          protocol: TCP
+        env:
+        - name: ASPNETCORE_ENVIRONMENT
+          valueFrom:
+            configMapKeyRef:
+              name: productmanagement-config
+              key: ASPNETCORE_ENVIRONMENT
+        - name: ASPNETCORE_URLS
+          valueFrom:
+            configMapKeyRef:
+              name: productmanagement-config
+              key: ASPNETCORE_URLS
+        - name: ConnectionStrings__DefaultConnection
+          valueFrom:
+            secretKeyRef:
+              name: productmanagement-secret
+              key: ConnectionStrings__DefaultConnection
+        - name: ConnectionStrings__Redis
+          valueFrom:
+            secretKeyRef:
+              name: productmanagement-secret
+              key: ConnectionStrings__Redis
+        - name: JwtSettings__SecretKey
+          valueFrom:
+            secretKeyRef:
+              name: productmanagement-secret
+              key: JwtSettings__SecretKey
+        - name: JwtSettings__Issuer
+          valueFrom:
+            configMapKeyRef:
+              name: productmanagement-config
+              key: JwtSettings__Issuer
+        - name: JwtSettings__Audience
+          valueFrom:
+            configMapKeyRef:
+              name: productmanagement-config
+              key: JwtSettings__Audience
+        - name: JwtSettings__AccessTokenExpirationMinutes
+          valueFrom:
+            configMapKeyRef:
+              name: productmanagement-config
+              key: JwtSettings__AccessTokenExpirationMinutes
+        - name: JwtSettings__RefreshTokenExpirationDays
+          valueFrom:
+            configMapKeyRef:
+              name: productmanagement-config
+              key: JwtSettings__RefreshTokenExpirationDays
+
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"
+
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3

@@ -1,0 +1,47 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: productmanagement
+  namespace: argocd
+  # Finalizer to ensure proper cleanup
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  # Project
+  project: default
+
+  # Source repository
+  source:
+    # For local development, use Git repository
+    # Or use local path (not recommended for ArgoCD)
+    repoURL: https://github.com/Max2535/productmanagement.git
+    targetRevision: main
+    path: k8s/base  # Path to Kubernetes manifests (kustomization.yaml lives here)
+
+  # Destination cluster
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: productmanagement
+
+  # Sync policy
+  syncPolicy:
+    automated:
+      prune: true      # Delete resources not in Git
+      selfHeal: true   # Auto-sync when drift detected
+      allowEmpty: false
+    syncOptions:
+    - CreateNamespace=true
+    - PruneLast=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+
+  # Health assessment
+  ignoreDifferences:
+  - group: apps
+    kind: Deployment
+    jsonPointers:
+    - /spec/replicas

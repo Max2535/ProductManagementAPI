@@ -5,16 +5,16 @@ services:
     container_name: productmanagement-sqlserver
     environment:
       - ACCEPT_EULA=Y
-      - SA_PASSWORD=YourStrong@Password123
-      - MSSQL_PID=Developer
+      - SA_PASSWORD=${SA_PASSWORD}
+      - MSSQL_PID=${MSSQL_PID}
     ports:
-      - "1433:1433"
+      - "${SQLSERVER_PORT}:1433"
     volumes:
       - sqlserver-data:/var/opt/mssql
     networks:
       - productmanagement-network
     healthcheck:
-      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P YourStrong@Password123 -Q 'SELECT 1' -C || exit 1"]
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P ${SA_PASSWORD} -Q 'SELECT 1' -C || exit 1"]
       interval: 10s
       timeout: 3s
       retries: 10
@@ -27,12 +27,14 @@ services:
       dockerfile: src/ProductManagement.API/Dockerfile
     container_name: productmanagement-api
     environment:
-      - ASPNETCORE_ENVIRONMENT=Development
-      - ConnectionStrings__DefaultConnection=Server=sqlserver;Database=ProductManagementDB;User Id=sa;Password=YourStrong@Password123;TrustServerCertificate=True;MultipleActiveResultSets=true
-      - RabbitMQ__HostName=rabbitmq
+      - ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT}
+      - ConnectionStrings__DefaultConnection=${DB_CONNECTION_STRING}
+      - RabbitMQ__HostName=${RABBITMQ_HOSTNAME}
+      - RabbitMQ__Username=${RABBITMQ_DEFAULT_USER}
+      - RabbitMQ__Password=${RABBITMQ_DEFAULT_PASS}
     ports:
-      - "5000:8080"
-      - "5001:8081"
+      - "${API_HTTP_PORT}:8080"
+      - "${API_HTTPS_PORT}:8081"
     depends_on:
       sqlserver:
         condition: service_healthy
@@ -49,11 +51,11 @@ services:
     image: rabbitmq:3-management
     container_name: productmanagement-rabbitmq
     ports:
-      - "5672:5672"   # RabbitMQ default port
-      - "15672:15672" # Management UI
+      - "${RABBITMQ_PORT}:5672"
+      - "${RABBITMQ_MANAGEMENT_PORT}:15672"
     environment:
-      RABBITMQ_DEFAULT_USER: guest
-      RABBITMQ_DEFAULT_PASS: guest
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
     volumes:
       - rabbitmq-data:/var/lib/rabbitmq
     networks:
@@ -63,6 +65,24 @@ services:
       interval: 30s
       timeout: 10s
       retries: 5
+
+  # ============================================
+  # Nginx Reverse Proxy (Production)
+  # ============================================
+  nginx:
+    image: nginx:alpine
+    container_name: productmanagement-nginx
+    ports:
+      - "${NGINX_HTTP_PORT}:80"
+      - "${NGINX_HTTPS_PORT}:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - api
+    networks:
+      - productmanagement-network
+    restart: always
 
 volumes:
   sqlserver-data:

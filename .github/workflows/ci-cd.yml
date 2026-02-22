@@ -1,0 +1,239 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+env:
+  DOTNET_VERSION: '9.0.x'
+  DOCKER_REGISTRY: ${{ secrets.DOCKER_REGISTRY }}
+  IMAGE_NAME: productmanagement-api
+
+jobs:
+  # ============================================
+  # Job 1: Build and Test
+  # ============================================
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    - name: Restore dependencies
+      run: dotnet restore
+
+    - name: Build solution
+      run: dotnet build --configuration Release --no-restore
+
+    - name: Run Unit Tests
+      run: dotnet test --no-build --verbosity normal --filter "FullyQualifiedName~UnitTests" --logger "trx;LogFileName=unit-tests.trx"
+
+    - name: Run Integration Tests
+      run: dotnet test --no-build --verbosity normal --filter "FullyQualifiedName~IntegrationTests" --logger "trx;LogFileName=integration-tests.trx"
+
+    - name: Generate Code Coverage
+      run: |
+        dotnet test src/ProductManagement.UnitTests/ProductManagement.UnitTests.csproj \
+          /p:CollectCoverage=true \
+          /p:CoverletOutputFormat=opencover \
+          /p:CoverletOutput=${{ github.workspace }}/coverage/unit.opencover.xml
+        dotnet test src/ProductManagement.IntegrationTests/ProductManagement.IntegrationTests.csproj \
+          /p:CollectCoverage=true \
+          /p:CoverletOutputFormat=opencover \
+          /p:CoverletOutput=${{ github.workspace }}/coverage/integration.opencover.xml
+
+    - name: Upload Test Results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: test-results
+        path: |
+          **/TestResults/*.trx
+          **/coverage/
+
+    - name: Publish Test Results
+      uses: dorny/test-reporter@v1
+      if: always()
+      with:
+        name: Test Results
+        path: '**/TestResults/*.trx'
+        reporter: dotnet-trx
+
+  # ============================================
+  # Job 2: Code Quality Analysis
+  # ============================================
+  code-quality:
+    runs-on: ubuntu-latest
+    needs: build-and-test
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Shallow clones disabled for better analysis
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    - name: SonarCloud Scan
+      uses: SonarSource/sonarcloud-github-action@v3
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      with:
+        args: >
+          -Dsonar.projectKey=your-project-key
+          -Dsonar.organization=your-org
+
+  # ============================================
+  # Job 3: Security Scan
+  # ============================================
+  security-scan:
+    runs-on: ubuntu-latest
+    needs: build-and-test
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        scan-type: 'fs'
+        scan-ref: '.'
+        format: 'sarif'
+        output: 'trivy-results.sarif'
+
+    - name: Upload Trivy results to GitHub Security
+      uses: github/codeql-action/upload-sarif@v3
+      with:
+        sarif_file: 'trivy-results.sarif'
+
+  # ============================================
+  # Job 4: Build and Push Docker Image
+  # ============================================
+  docker-build-push:
+    runs-on: ubuntu-latest
+    needs: [build-and-test, code-quality, security-scan]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Log in to Docker Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.DOCKER_REGISTRY }}
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+
+    - name: Extract metadata
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}
+        tags: |
+          type=ref,event=branch
+          type=ref,event=pr
+          type=semver,pattern={{version}}
+          type=semver,pattern={{major}}.{{minor}}
+          type=sha,prefix={{branch}}-
+          type=raw,value=latest,enable={{is_default_branch}}
+
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v6
+      with:
+        context: .
+        file: src/ProductManagement.API/Dockerfile
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        cache-from: type=registry,ref=${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache
+        cache-to: type=registry,ref=${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache,mode=max
+        platforms: linux/amd64,linux/arm64
+
+  # ============================================
+  # Job 5: Deploy via Argo CD (localhost)
+  # ============================================
+  deploy-argocd:
+    runs-on: self-hosted
+    needs: docker-build-push
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    environment:
+      name: production
+      url: http://localhost:8080
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install Argo CD CLI
+      run: |
+        curl -sSL -o /usr/local/bin/argocd https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
+        chmod +x /usr/local/bin/argocd
+
+    - name: Login to Argo CD
+      run: |
+        argocd login ${{ secrets.ARGOCD_SERVER }} \
+          --username ${{ secrets.ARGOCD_USERNAME }} \
+          --password ${{ secrets.ARGOCD_PASSWORD }} \
+          --insecure
+
+    - name: Update image tag
+      run: |
+        argocd app set productmanagement-api \
+          --kustomize-image ${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+
+    - name: Sync Argo CD application
+      run: |
+        argocd app sync productmanagement-api --force
+
+    - name: Wait for rollout to complete
+      run: |
+        argocd app wait productmanagement-api \
+          --health \
+          --timeout 300
+
+  # ============================================
+  # Job 6: Smoke Tests
+  # ============================================
+  smoke-tests:
+    runs-on: self-hosted
+    needs: deploy-argocd
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+    - name: Wait for deployment
+      run: sleep 30
+
+    - name: Health Check
+      run: |
+        response=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:${{ secrets.APP_PORT }}/health)
+        if [ $response -ne 200 ]; then
+          echo "Health check failed with status code: $response"
+          exit 1
+        fi
+        echo "Health check passed!"
+
+    - name: API Smoke Test
+      run: |
+        response=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:${{ secrets.APP_PORT }}/api/products)
+        if [ $response -ne 200 ]; then
+          echo "API smoke test failed with status code: $response"
+          exit 1
+        fi
+        echo "API smoke test passed!"

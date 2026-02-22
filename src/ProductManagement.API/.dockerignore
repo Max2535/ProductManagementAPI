@@ -1,0 +1,49 @@
+# Build artifacts
+**/bin/
+**/obj/
+**/out/
+**/publish/
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Test projects
+**/*Tests/
+**/TestResults/
+
+# Coverage
+**/coverage/
+**/coveragereport/
+
+# Docker
+**/.dockerignore
+**/Dockerfile*
+**/*compose*
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Documentation
+**/*.md
+**/docs/
+
+# Logs
+**/logs/
+**/*.log
+
+# Environment files
+**/.env
+**/.env.*
+
+# Node modules (if any)
+**/node_modules/
+
+# IDE
+**/.vscode/
+**/.idea/

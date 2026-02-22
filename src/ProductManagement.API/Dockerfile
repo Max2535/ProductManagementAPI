@@ -20,6 +20,10 @@ RUN dotnet restore "src/ProductManagement.API/ProductManagement.API.csproj"
 # Copy all source code
 COPY . .
 
+# Copy migration script
+COPY ["scripts/migrate-database.sh", "/scripts/"]
+RUN chmod +x /scripts/migrate-database.sh
+
 # Build the application
 WORKDIR "/src/src/ProductManagement.API"
 RUN dotnet build "ProductManagement.API.csproj" -c Release -o /app/build
@@ -39,8 +43,13 @@ RUN addgroup --system --gid 1000 appgroup \
 # Copy published files
 COPY --from=publish /app/publish .
 
+# Copy migration script
+COPY --from=build /scripts/migrate-database.sh /scripts/migrate-database.sh
+
 # Create logs directory and set permissions
-RUN mkdir -p /app/logs && chown -R appuser:appgroup /app
+RUN mkdir -p /app/logs \
+    && chown -R appuser:appgroup /app \
+    && chown appuser:appgroup /scripts/migrate-database.sh
 
 # Switch to non-root user
 USER appuser
