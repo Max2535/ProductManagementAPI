@@ -138,6 +138,9 @@ ProductManagementAPI/
 │   ├── ProductManagement.UnitTests/        # 🧪 Unit tests
 │   └── ProductManagement.IntegrationTests/ # 🧪 Integration tests
 │
+├── nginx/
+│   ├── Dockerfile                           # Nginx custom image (bakes config in)
+│   └── nginx.conf                           # Nginx reverse proxy configuration
 ├── docker-compose.yml                       # Docker services configuration
 ├── ProductManagement.sln                    # Solution file
 ├── README.md                                # This file
@@ -404,12 +407,13 @@ docker-compose up -d
 Services ที่จะรัน:
 - **SQL Server** - Port 1433
 - **RabbitMQ** - Port 5672, Management UI: 15672
-- **API** - Port 5000 (HTTP), 5001 (HTTPS)
+- **API** - Port 8080 (HTTP), 8081 (HTTPS) (internal, ผ่าน Nginx)
+- **Nginx** - Port 80 (HTTP), 443 (HTTPS) — reverse proxy หน้า API
 
 #### 3. Access Services
-- **API**: http://localhost:5000
-- **Swagger UI**: http://localhost:5000/swagger
-- **Hangfire Dashboard**: http://localhost:5000/hangfire
+- **API** (ผ่าน Nginx): http://localhost
+- **Swagger UI**: http://localhost/swagger
+- **Hangfire Dashboard**: http://localhost/hangfire
 - **RabbitMQ Management**: http://localhost:15672 (guest/guest)
 
 ---
@@ -1361,9 +1365,10 @@ Default admin user จะถูกสร้างอัตโนมัติเ�
 - [ ] GraphQL API
 - [ ] API versioning
 
-### Phase 4 - DevOps & Production 📋 (Planned)
-- [ ] CI/CD pipeline (GitHub Actions)
-- [ ] Kubernetes deployment
+### Phase 4 - DevOps & Production 🚧 (In Progress)
+- [x] CI/CD pipeline (GitHub Actions)
+- [x] Kubernetes deployment
+- [x] Nginx Reverse Proxy (custom Docker image)
 - [ ] API Gateway (Ocelot)
 - [ ] Monitoring (Prometheus + Grafana)
 - [ ] Distributed tracing (Jaeger)
